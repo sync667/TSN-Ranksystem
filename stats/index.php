@@ -15,13 +15,13 @@ require_once('../other/config.php');
 require_once('../other/session.php');
 require_once('../other/load_addons_config.php');
 
-$addons_config = load_addons_config($mysqlcon,$lang,$dbname,$timezone,$logpath);
+$addons_config = load_addons_config($mysqlcon,$lang,$cfg,$dbname);
 
 
 require_once('../languages/nations_pl.php');
 
 if(!isset($_SESSION[$rspathhex.'tsuid'])) {
-	set_session_ts3($ts['voice'], $mysqlcon, $dbname, $language, $adminuuid);
+	set_session_ts3($mysqlcon,$cfg,$lang,$dbname);
 }
 
 function human_readable_size($bytes,$lang) {
@@ -483,7 +483,7 @@ require_once('nav.php');
 									</tr>
 									<tr>
 										<td><?PHP echo $lang['stix0031']; ?></td>
-										<td><?PHP $serveruptime = new DateTime("@".$sql_res['server_uptime']); if ($sql_res['server_status'] == 0) { echo '-&nbsp;&nbsp;&nbsp;(<i>'.$lang['stix0032'].'&nbsp;'.(new DateTime("@0"))->diff($serveruptime)->format($timeformat).')</i>'; } else { echo $lang['stix0033']; } ?></td>
+										<td><?PHP $serveruptime = new DateTime("@".$sql_res['server_uptime']); if ($sql_res['server_status'] == 0) { echo '-&nbsp;&nbsp;&nbsp;(<i>'.$lang['stix0032'].'&nbsp;'.(new DateTime("@0"))->diff($serveruptime)->format($cfg['default_date_format']).')</i>'; } else { echo $lang['stix0033']; } ?></td>
 									</tr>
 									<tr>
 										<td><?PHP echo $lang['stix0034']; ?></td>
@@ -508,23 +508,23 @@ require_once('nav.php');
 									<tr>
 										<td><?PHP echo $lang['stix0037']; ?></td>
 										<td><a href="ts3server://<?PHP
-										if (($ts['host']=='localhost' || $ts['host']=='127.0.0.1') && strpos($_SERVER['HTTP_HOST'], 'www.') == 0) {
+										if (($cfg['teamspeak_host_address']=='localhost' || $cfg['teamspeak_host_address']=='127.0.0.1') && strpos($_SERVER['HTTP_HOST'], 'www.') == 0) {
 											echo preg_replace('/www\./','',$_SERVER['HTTP_HOST']);
-										} elseif ($ts['host']=='localhost' || $ts['host']=='127.0.0.1') {
+										} elseif ($cfg['teamspeak_host_address']=='localhost' || $cfg['teamspeak_host_address']=='127.0.0.1') {
 											echo $_SERVER['HTTP_HOST'];
 										} else {
-											echo $ts['host'];
+											echo $cfg['teamspeak_host_address'];
 										}
-										echo ':'.$ts['voice']; ?>">
+										echo ':'.$cfg['teamspeak_voice_port']; ?>">
 										<?PHP
-										if (($ts['host']=='localhost' || $ts['host']=='127.0.0.1') && strpos($_SERVER['HTTP_HOST'], 'www.') == 0) {
+										if (($cfg['teamspeak_host_address']=='localhost' || $cfg['teamspeak_host_address']=='127.0.0.1') && strpos($_SERVER['HTTP_HOST'], 'www.') == 0) {
 											echo preg_replace('/www\./','',$_SERVER['HTTP_HOST']);
-										} elseif ($ts['host']=='localhost' || $ts['host']=='127.0.0.1') {
+										} elseif ($cfg['teamspeak_host_address']=='localhost' || $cfg['teamspeak_host_address']=='127.0.0.1') {
 											echo $_SERVER['HTTP_HOST'];
 										} else {
-											echo $ts['host'];
+											echo $cfg['teamspeak_host_address'];
 										}
-										echo ':'.$ts['voice']; ?></a></td>
+										echo ':'.$cfg['teamspeak_voice_port']; ?></a></td>
 									</tr>
 									<tr>
 										<td><?PHP echo $lang['stix0042']; ?></td>
