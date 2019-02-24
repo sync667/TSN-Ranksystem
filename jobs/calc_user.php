@@ -7,7 +7,7 @@ function calc_user($ts3,$mysqlcon,$lang,$cfg,$dbname,$allclients,$phpcommand,&$d
 	if(empty($cfg['rankup_definition'])) {
 		shutdown($mysqlcon,$cfg,1,"calc_user:".$lang['wiconferr']);
 	}
-	
+
 	$addtime = $nowtime - $db_cache['job_check']['calc_user_lastscan']['timestamp'];
 
 	if($addtime > 1800) {
@@ -113,7 +113,7 @@ function calc_user($ts3,$mysqlcon,$lang,$cfg,$dbname,$allclients,$phpcommand,&$d
 			} elseif($cfg['rankup_excepted_group_id_list'] != NULL && array_intersect_key($sgroups, $cfg['rankup_excepted_group_id_list'])) {
 				$except = 2;
 			} else {
-				if(isset($db_cache['all_user'][$uid]['except']) && ($db_cache['all_user'][$uid]['except'] == 3 || $db_cache['all_user'][$uid]['except'] == 2) && $cfg['rankup_excepted_mode'] == 2) { 
+				if(isset($db_cache['all_user'][$uid]['except']) && ($db_cache['all_user'][$uid]['except'] == 3 || $db_cache['all_user'][$uid]['except'] == 2) && $cfg['rankup_excepted_mode'] == 2) {
 				 	$db_cache['all_user'][$uid]['count'] = 0;
 				 	$db_cache['all_user'][$uid]['idle'] = 0;
 					enter_logfile($cfg,5,sprintf($lang['resettime'], $name, $uid, $client['client_database_id']));
@@ -260,6 +260,7 @@ function calc_user($ts3,$mysqlcon,$lang,$cfg,$dbname,$allclients,$phpcommand,&$d
 					"platform" => $client['client_platform'],
 					"nation" => $client['client_country'],
 					"version" => $client['client_version'],
+                    "firstcon" => $client['client_created'],
 					"except" => $except,
 					"grpsince" => $db_cache['all_user'][$uid]['grpsince'],
 					"cid" => $client['cid']
@@ -319,13 +320,13 @@ function calc_user($ts3,$mysqlcon,$lang,$cfg,$dbname,$allclients,$phpcommand,&$d
 	if ($updatedata != NULL) {
 		$sqlinsertvalues = '';
 		foreach ($updatedata as $updatearr) {
-			$sqlinsertvalues .= "(".$updatearr['uuid'].",".$updatearr['cldbid'].",".$updatearr['count'].",".$updatearr['name'].",".$updatearr['lastseen'].",".$updatearr['grpid'].",".$updatearr['nextup'].",".$updatearr['idle'].",'".$updatearr['cldgroup']."',".$updatearr['boosttime'].",'".$updatearr['platform']."','".$updatearr['nation']."','".$updatearr['version']."',".$updatearr['except'].",".$updatearr['grpsince'].",".$updatearr['cid'].",1),";
+			$sqlinsertvalues .= "(".$updatearr['uuid'].",".$updatearr['cldbid'].",".$updatearr['count'].",".$updatearr['name'].",".$updatearr['lastseen'].",".$updatearr['grpid'].",".$updatearr['nextup'].",".$updatearr['idle'].",'".$updatearr['cldgroup']."',".$updatearr['boosttime'].",'".$updatearr['platform']."','".$updatearr['nation']."','".$updatearr['version']."',".$updatearr['firstcon']."','".$updatearr['except'].",".$updatearr['grpsince'].",".$updatearr['cid'].",1),";
 		}
 		$sqlinsertvalues = substr($sqlinsertvalues, 0, -1);
-		$sqlexec .= "INSERT INTO `$dbname`.`user` (`uuid`,`cldbid`,`count`,`name`,`lastseen`,`grpid`,`nextup`,`idle`,`cldgroup`,`boosttime`,`platform`,`nation`,`version`,`except`,`grpsince`,`cid`,`online`) VALUES $sqlinsertvalues ON DUPLICATE KEY UPDATE `cldbid`=VALUES(`cldbid`),`count`=VALUES(`count`),`name`=VALUES(`name`),`lastseen`=VALUES(`lastseen`),`grpid`=VALUES(`grpid`),`nextup`=VALUES(`nextup`),`idle`=VALUES(`idle`),`cldgroup`=VALUES(`cldgroup`),`boosttime`=VALUES(`boosttime`),`platform`=VALUES(`platform`),`nation`=VALUES(`nation`),`version`=VALUES(`version`),`except`=VALUES(`except`),`grpsince`=VALUES(`grpsince`),`cid`=VALUES(`cid`),`online`=VALUES(`online`);\n";
+		$sqlexec .= "INSERT INTO `$dbname`.`user` (`uuid`,`cldbid`,`count`,`name`,`lastseen`,`grpid`,`nextup`,`idle`,`cldgroup`,`boosttime`,`platform`,`nation`,`version`,`firstcon`,`except`,`grpsince`,`cid`,`online`) VALUES $sqlinsertvalues ON DUPLICATE KEY UPDATE `cldbid`=VALUES(`cldbid`),`count`=VALUES(`count`),`name`=VALUES(`name`),`lastseen`=VALUES(`lastseen`),`grpid`=VALUES(`grpid`),`nextup`=VALUES(`nextup`),`idle`=VALUES(`idle`),`cldgroup`=VALUES(`cldgroup`),`boosttime`=VALUES(`boosttime`),`platform`=VALUES(`platform`),`nation`=VALUES(`nation`),`version`=VALUES(`version`),`except`=VALUES(`except`),`grpsince`=VALUES(`grpsince`),`cid`=VALUES(`cid`),`online`=VALUES(`online`);\n";
 		unset($updatedata, $sqlinsertvalues);
 	}
-	
+
 	if ($insertdata != NULL) {
 		$sqlinsertvalues = '';
 		foreach ($insertdata as $updatearr) {

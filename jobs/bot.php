@@ -96,7 +96,6 @@ require_once(substr(__DIR__,0,-4).'jobs/clean.php');
 require_once(substr(__DIR__,0,-4).'jobs/check_db.php');
 require_once(substr(__DIR__,0,-4).'jobs/handle_messages.php');
 require_once(substr(__DIR__,0,-4).'jobs/event_userenter.php');
-require_once(substr(__DIR__,0,-4).'jobs/update_rs.php');
 require_once(substr(__DIR__,0,-4).'jobs/reset_rs.php');
 
 enter_logfile($cfg,9,"Running on OS: ".php_uname("s")." ".php_uname("r"));
@@ -107,11 +106,6 @@ $cfg = check_db($mysqlcon,$lang,$cfg,$dbname);
 $cfg['temp_db_version'] = $mysqlcon->getAttribute(PDO::ATTR_SERVER_VERSION);
 $cfg['temp_last_botstart'] = time();
 $cfg['temp_reconnect_attempts'] = 0;
-enter_logfile($cfg,4,"Check Ranksystem files for updates...");
-if(isset($cfg['version_current_using']) && isset($cfg['version_latest_available']) && $cfg['version_latest_available'] != NULL && version_compare($cfg['version_latest_available'], $cfg['version_current_using'], '>')) {
-	update_rs($mysqlcon,$lang,$cfg,$dbname,$phpcommand);
-}
-enter_logfile($cfg,4,"Check Ranksystem files for updates [done]");
 
 function check_shutdown($cfg) {
 	if(!file_exists(substr(__DIR__,0,-4).'logs/pid')) {
@@ -168,7 +162,7 @@ function sendmessage($ts3, $cfg, $uuid, $targetmode, $targetid=NULL, $msg, $erro
 				$ts3->serverGetSelected()->clientGetByUid($uuid)->message($msg);
 				if($nolog==NULL) enter_logfile($cfg,6,"sendmessage to uuid $uuid (connectionID $targetid): ".$msg);
 			}
-			
+
 		}
 		if($successmsg!=NULL) {
 			enter_logfile($cfg,5,$successmsg);
@@ -227,7 +221,7 @@ function run_bot() {
 		} catch (Exception $e) {
 			enter_logfile($cfg,2,"  Error due getting TS3 server version - ".$e->getCode().': '.$e->getMessage());
 		}
-		
+
 		if(version_compare($ts3version['version'],'3.11.9','<=')) {
 			enter_logfile($cfg,3,"      Your TS3 server is outdated, please update it!");
 		}
@@ -321,7 +315,7 @@ function run_bot() {
 		if(($groupslist = $mysqlcon->query("SELECT * FROM `$dbname`.`groups`")->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC)) === false) {
 			enter_logfile($cfg,1,"  Select on DB failed for group check: ".print_r($mysqlcon->errorInfo(), true));
 		}
-		
+
 		$checkgroups = 0;
 		if(isset($groupslist) && $groupslist != NULL) {
 			if(isset($cfg['rankup_definition']) && $cfg['rankup_definition'] != NULL) {
@@ -362,11 +356,11 @@ function run_bot() {
 			unset($sqlexec2,$select_arr,$db_cache,$groupslist,$serverinfo,$ts3version);
 			$errcnf = 0;
 			enter_logfile($cfg,4,"  Downloading of servergroups finished. Recheck the config.");
-			
+
 			if(($groupslist = $mysqlcon->query("SELECT * FROM `$dbname`.`groups`")->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC)) === false) {
 				enter_logfile($cfg,1,"  Select on DB failed for group check: ".print_r($mysqlcon->errorInfo(), true));
 			}
-			
+
 			if(isset($groupslist) && $groupslist != NULL) {
 				if(isset($cfg['rankup_definition']) && $cfg['rankup_definition'] != NULL) {
 					foreach($cfg['rankup_definition'] as $rank) {
@@ -441,7 +435,7 @@ function run_bot() {
 					$db_cache['max_timestamp_server_usage'] = $fetched_array;
 					break;
 				case 3:
-					$db_cache['job_check'] = $fetched_array; 
+					$db_cache['job_check'] = $fetched_array;
 					break;
 				case 4:
 					$db_cache['groups'] = $fetched_array;
@@ -467,7 +461,7 @@ function run_bot() {
 			if(($db_cache['job_check'] = $mysqlcon->query("SELECT * FROM `$dbname`.`job_check`")->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC)) === false) {
 				enter_logfile($cfg,3,"  Select on DB failed for job check: ".print_r($mysqlcon->errorInfo(), true));
 			}
-			
+
 			if($db_cache['job_check']['reload_trigger']['timestamp'] == 1) {
 				unset($db_cache['addon_assign_groups'],$db_cache['admin_addtime']);
 				if(($get_db_data = $mysqlcon->query("SELECT * FROM `$dbname`.`addon_assign_groups`; SELECT * FROM `$dbname`.`admin_addtime`; SELECT * FROM `$dbname`.`groups`;")) === false) {
@@ -574,7 +568,7 @@ function run_bot() {
 				enter_logfile($cfg,2,$lang['error'].print_r($mysqlcon->errorInfo(), true));
 			}
 		}
-		
+
 		if($cfg['temp_last_botstart'] < (time() - 10)) {
 			if($cfg['temp_reconnect_attempts'] < 4) {
 				$wait_reconnect = 5;

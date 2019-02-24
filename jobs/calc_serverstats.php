@@ -57,7 +57,7 @@ function calc_serverstats($ts3,$mysqlcon,&$cfg,$dbname,$dbtype,$serverinfo,&$db_
 			$server_status = 1;
 		} elseif($serverinfo['virtualserver_status']=="offline") {
 			$server_status = 2;
-		} elseif($serverinfo['virtualserver_status']=="virtual online") {	
+		} elseif($serverinfo['virtualserver_status']=="virtual online") {
 			$server_status = 3;
 		} else {
 			$server_status = 4;
@@ -118,7 +118,7 @@ function calc_serverstats($ts3,$mysqlcon,&$cfg,$dbname,$dbtype,$serverinfo,&$db_
 						default:
 							$platform_other = $platform_other + $count;
 					}
-					
+
 					if(isset($cfg['temp_cache_platforms'][$platform]) && $cfg['temp_cache_platforms'][$platform] == $count) {
 						continue;
 					} elseif(isset($cfg['temp_cache_platforms'][$platform])) {
@@ -139,7 +139,7 @@ function calc_serverstats($ts3,$mysqlcon,&$cfg,$dbname,$dbtype,$serverinfo,&$db_
 				$insertplatform = substr($insertplatform, 0, -1);
 				$sqlexec .= "INSERT INTO `$dbname`.`stats_platforms` (`platform`,`count`) VALUES $insertplatform;\n";
 			}
-			unset($platform_array,$allupdateplatform,$updateplatform,$insertplatform,$platform,$count);		
+			unset($platform_array,$allupdateplatform,$updateplatform,$insertplatform,$platform,$count);
 		}
 
 
@@ -209,7 +209,7 @@ function calc_serverstats($ts3,$mysqlcon,&$cfg,$dbname,$dbtype,$serverinfo,&$db_
 						default:
 							$country_nation_other = $country_nation_other + $count;
 					}
-					
+
 					if(isset($cfg['temp_cache_nations'][$nation]) && $cfg['temp_cache_nations'][$nation] == $count) {
 						continue;
 					} elseif(isset($cfg['temp_cache_nations'][$nation])) {
@@ -234,7 +234,7 @@ function calc_serverstats($ts3,$mysqlcon,&$cfg,$dbname,$dbtype,$serverinfo,&$db_
 		}
 
 
-		$version_1 = $version_2 = $version_3 = $version_4 = $version_5 = $version_name_1 = $version_name_2 = $version_name_3 = $version_name_4 = $version_name_5 = $count_version = $version_other = 0;	
+		$version_1 = $version_2 = $version_3 = $version_4 = $version_5 = $version_name_1 = $version_name_2 = $version_name_3 = $version_name_4 = $version_name_5 = $count_version = $version_other = 0;
 		if(!isset($cfg['temp_cache_versions'])) {
 			$allinsertversion = '';
 			foreach($count_version_user as $version => $count) {
@@ -300,7 +300,7 @@ function calc_serverstats($ts3,$mysqlcon,&$cfg,$dbname,$dbtype,$serverinfo,&$db_
 						default:
 							$version_other = $version_other + $count;
 					}
-					
+
 					if(isset($cfg['temp_cache_versions'][$version]) && $cfg['temp_cache_versions'][$version] == $count) {
 						continue;
 					} elseif(isset($cfg['temp_cache_versions'][$version])) {
@@ -323,7 +323,7 @@ function calc_serverstats($ts3,$mysqlcon,&$cfg,$dbname,$dbtype,$serverinfo,&$db_
 			}
 			unset($allupdatenversion,$updateversion,$insertversion);
 		}
-		
+
 
 		$server_used_slots = $serverinfo['virtualserver_clientsonline'] - $serverinfo['virtualserver_queryclientsonline'];
 		$server_free_slots = $serverinfo['virtualserver_maxclients'] - $server_used_slots;
@@ -343,7 +343,7 @@ function calc_serverstats($ts3,$mysqlcon,&$cfg,$dbname,$dbtype,$serverinfo,&$db_
 		$monthago = $db_cache['job_check']['last_snapshot_id']['timestamp'] - 120;
 		if ($weekago < 1) $weekago = $weekago + 121;
 		if ($monthago < 1) $monthago = $monthago + 121;
-		
+
 		if(($entry_snapshot_count = $mysqlcon->query("SELECT count(DISTINCT(`id`)) AS `id` FROM `$dbname`.`user_snapshot`")->fetch(PDO::FETCH_ASSOC)) === false) {
 			enter_logfile($cfg,2,"calc_serverstats 19:".print_r($mysqlcon->errorInfo(), true));
 		}

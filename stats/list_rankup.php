@@ -106,6 +106,29 @@ if(isset($getstring) && strstr($getstring, 'filter:lastseen:')) {
 	}
 	$filter .= " AND `lastseen`".$operator."'".$lastseen."'";
 }
+if(isset($getstring) && strstr($getstring, 'filter:firstcon:')) {
+    preg_match('/filter\:firstcon\:(.*)\:(.*)\:/',$searchstring,$seenvalue);
+    $searchstring = preg_replace('/filter\:firstcon\:(.*)\:(.*)\:/','',$searchstring);
+    if(isset($seenvalue[2]) && is_numeric($seenvalue[2])) {
+        $lastseen = $seenvalue[2];
+    } elseif(isset($seenvalue[2])) {
+        $r = date_parse_from_format("Y-m-d H-i",$seenvalue[2]);
+        $lastseen = mktime($r['hour'], $r['minute'], $r['second'], $r['month'], $r['day'], $r['year']);
+    } else {
+        $lastseen = 0;
+    }
+    if(isset($seenvalue[1]) && ($seenvalue[1] == '&lt;' || $seenvalue[1] == '<')) {
+        $operator = '<';
+    } elseif(isset($seenvalue[1]) && ($seenvalue[1] == '&gt;' || $seenvalue[1] == '>')) {
+        $operator = '>';
+    } elseif(isset($seenvalue[1]) && $seenvalue[1] == '!=') {
+        $operator = '!=';
+    } else {
+        $operator = '=';
+    }
+    $filter .= " AND `firstcon`".$operator."'".$lastseen."'";
+}
+
 $searchstring = htmlspecialchars_decode($searchstring);
 
 if(isset($getstring)) {
