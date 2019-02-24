@@ -191,6 +191,7 @@ function calc_user($ts3,$mysqlcon,$lang,$dbname,$slowmode,$timezone,$grouptime,$
 					"platform" => $client['client_platform'],
 					"nation" => $client['client_country'],
 					"version" => $client['client_version'],
+                    "firstcon" => $client['client_created'],
 					"except" => $except,
 					"grpsince" => $grpsince,
 					"cid" => $client['cid']
@@ -231,10 +232,10 @@ function calc_user($ts3,$mysqlcon,$lang,$dbname,$slowmode,$timezone,$grouptime,$
 	if ($updatedata != NULL) {
 		$sqlinsertvalues = '';
 		foreach ($updatedata as $updatearr) {
-			$sqlinsertvalues .= "(".$updatearr['uuid'].",'".$updatearr['cldbid']."','".$updatearr['count']."',".$updatearr['name'].",'".$updatearr['lastseen']."','".$updatearr['grpid']."','".$updatearr['nextup']."','".$updatearr['idle']."','".$updatearr['cldgroup']."','".$updatearr['boosttime']."','".$updatearr['platform']."','".$updatearr['nation']."','".$updatearr['version']."','".$updatearr['except']."','".$updatearr['grpsince']."','".$updatearr['cid']."',1),";
+			$sqlinsertvalues .= "(".$updatearr['uuid'].",'".$updatearr['cldbid']."','".$updatearr['count']."',".$updatearr['name'].",'".$updatearr['lastseen']."','".$updatearr['grpid']."','".$updatearr['nextup']."','".$updatearr['idle']."','".$updatearr['cldgroup']."','".$updatearr['boosttime']."','".$updatearr['platform']."','".$updatearr['nation']."','".$updatearr['version']."','".$updatearr['firstcon']."','".$updatearr['except']."','".$updatearr['grpsince']."','".$updatearr['cid']."',1),";
 		}
 		$sqlinsertvalues = substr($sqlinsertvalues, 0, -1);
-		$sqlexec .= "UPDATE `$dbname`.`user` SET `online`='0'; INSERT INTO `$dbname`.`user` (`uuid`,`cldbid`,`count`,`name`,`lastseen`,`grpid`,`nextup`,`idle`,`cldgroup`,`boosttime`,`platform`,`nation`,`version`,`except`,`grpsince`,`cid`,`online`) VALUES $sqlinsertvalues ON DUPLICATE KEY UPDATE `cldbid`=VALUES(`cldbid`),`count`=VALUES(`count`),`name`=VALUES(`name`),`lastseen`=VALUES(`lastseen`),`grpid`=VALUES(`grpid`),`nextup`=VALUES(`nextup`),`idle`=VALUES(`idle`),`cldgroup`=VALUES(`cldgroup`),`boosttime`=VALUES(`boosttime`),`platform`=VALUES(`platform`),`nation`=VALUES(`nation`),`version`=VALUES(`version`),`except`=VALUES(`except`),`grpsince`=VALUES(`grpsince`),`cid`=VALUES(`cid`),`online`=VALUES(`online`); ";
+		$sqlexec .= "UPDATE `$dbname`.`user` SET `online`='0'; INSERT INTO `$dbname`.`user` (`uuid`,`cldbid`,`count`,`name`,`lastseen`,`grpid`,`nextup`,`idle`,`cldgroup`,`boosttime`,`platform`,`nation`,`version`,`firstcon`,`except`,`grpsince`,`cid`,`online`) VALUES $sqlinsertvalues ON DUPLICATE KEY UPDATE `cldbid`=VALUES(`cldbid`),`count`=VALUES(`count`),`name`=VALUES(`name`),`lastseen`=VALUES(`lastseen`),`grpid`=VALUES(`grpid`),`nextup`=VALUES(`nextup`),`idle`=VALUES(`idle`),`cldgroup`=VALUES(`cldgroup`),`boosttime`=VALUES(`boosttime`),`platform`=VALUES(`platform`),`nation`=VALUES(`nation`),`version`=VALUES(`version`),`except`=VALUES(`except`),`grpsince`=VALUES(`grpsince`),`cid`=VALUES(`cid`),`online`=VALUES(`online`); ";
 		unset($updatedata, $sqlinsertvalues);
 	}
 	return($sqlexec);

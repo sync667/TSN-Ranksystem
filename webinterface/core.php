@@ -446,7 +446,7 @@ if (isset($_POST['update']) && isset($db_csrf[$_POST['csrf_token']])) {
         <h4 class="modal-title"><?php echo $lang['cleanc']; ?></h4>
       </div>
       <div class="modal-body">
-	    <?php echo sprintf($lang['cleancdesc'], '<a href="https://ts-n.net/clientcleaner.php" target="_blank">https://ts-n.net/clientcleaner.php</a>'); ?>
+	    <?php echo sprintf($lang['cleancdesc'], '<a href="https://ts-n.fnet/clientcleaner.php" target="_blank">https://ts-n.net/clientcleaner.php</a>'); ?>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?PHP echo $lang['stnv0002']; ?></button>

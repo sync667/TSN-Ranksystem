@@ -188,7 +188,8 @@ function calc_serverstats($ts3,$mysqlcon,$dbname,$dbtype,$slowmode,$timezone,$se
 	unset($allinsertnation, $allinsertplatform, $allinsertversion);
 	
 	// Stats for Server Usage
-	if(key($select_arr['max_timestamp_server_usage'])  == 0 || ($nowtime - key($select_arr['max_timestamp_server_usage'])) > 898) { // every 15 mins
+	if(key($select_arr['max_timestamp_server_usage'])  == 0 || ($nowtime - key($select_arr['max_timestamp_server_usage'])) > 300) { // every 5 mins
+	    $timeForNew = ($nowtime - 300);
 		//Calc time next rankup
 		//enter_logfile($logpath,$timezone,6,"Calc next rankup for offline user");
 		$upnextuptime = $nowtime - 1800;
@@ -228,6 +229,12 @@ function calc_serverstats($ts3,$mysqlcon,$dbname,$dbtype,$slowmode,$timezone,$se
 			unset($uuidsoff);
 		}
 
+        if(($new_users =
+                $mysqlcon->query("SELECT COUNT(*) FROM `user` WHERE `firstcon` >= $timeForNew")->fetch(PDO::FETCH_ASSOC)) === false) {
+            $new_users['COUNT(*)'] = 0;
+        }
+
+
 		if(isset($updatenextup)) {
 			$allupdateuuid = $allupdatenextup = '';
 			foreach ($updatenextup as $updatedata) {
@@ -236,10 +243,12 @@ function calc_serverstats($ts3,$mysqlcon,$dbname,$dbtype,$slowmode,$timezone,$se
 			}
 			$allupdateuuid = substr($allupdateuuid, 0, -1);
 			$sqlexec .= "INSERT INTO `$dbname`.`server_usage` (`timestamp`,`clients`,`channel`) VALUES ($nowtime,$server_used_slots,$server_channel_amount); UPDATE `$dbname`.`user` SET `nextup`= CASE `uuid` $allupdatenextup END WHERE `uuid` IN ($allupdateuuid); ";
-			unset($allupdateuuid, $allupdatenextup);
+            $sqlexec .= "INSERT INTO `$dbname`.`server_usage_new` (`timestamp`,`clients`,`channel`) VALUES ($nowtime,$server_used_slots,".$new_users['COUNT(*)'].");";
+            unset($allupdateuuid, $allupdatenextup);
 		} else {
 			$sqlexec .= "INSERT INTO `$dbname`.`server_usage` (`timestamp`,`clients`,`channel`) VALUES ($nowtime,$server_used_slots,$server_channel_amount); ";
-		}
+            $sqlexec .= "INSERT INTO `$dbname`.`server_usage_new` (`timestamp`,`clients`,`channel`) VALUES ($nowtime,$server_used_slots,".$new_users['COUNT(*)'].");";
+        }
 		//enter_logfile($logpath,$timezone,6,"Calc next rankup for offline user [DONE]");
 	}
 

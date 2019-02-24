@@ -17,29 +17,8 @@ require_once('../other/load_addons_config.php');
 
 $addons_config = load_addons_config($mysqlcon,$lang,$dbname,$timezone,$logpath);
 
-if($language == "ar") {
-	require_once('../languages/nations_en.php');
-} elseif($language == "cz") {
-	require_once('../languages/nations_en.php');
-} elseif($language == "de") {
-	require_once('../languages/nations_de.php');
-} elseif($language == "en") {
-	require_once('../languages/nations_en.php');
-} elseif($language == "fr") {
-	require_once('../languages/nations_fr.php');
-} elseif($language == "it") {
-	require_once('../languages/nations_it.php');
-} elseif($language == "nl") {
-	require_once('../languages/nations_en.php');
-} elseif($language == "pl") {
-	require_once('../languages/nations_pl.php');
-} elseif($language == "ro") {
-	require_once('../languages/nations_en.php');
-} elseif($language == "ru") {
-	require_once('../languages/nations_ru.php');
-} elseif($language == "pt") {
-	require_once('../languages/nations_pt.php');
-}
+
+require_once('../languages/nations_pl.php');
 
 if(!isset($_SESSION[$rspathhex.'tsuid'])) {
 	set_session_ts3($ts['voice'], $mysqlcon, $dbname, $language, $adminuuid);
@@ -54,6 +33,23 @@ function human_readable_size($bytes,$lang) {
 if(($sql_res = $mysqlcon->query("SELECT * FROM `$dbname`.`stats_server`")->fetch()) === false) {
 	$err_msg = print_r($mysqlcon->errorInfo(), true); $err_lvl = 3;
 }
+
+if(($sql_res_new = $mysqlcon->query("SELECT COUNT(*) AS newToday FROM `$dbname`.`user` WHERE `firstcon` >= " .(time() - 86400))->fetch(PDO::FETCH_ASSOC)) === false) {
+    $err_msg = print_r($mysqlcon->errorInfo(), true); $err_lvl = 3;
+}
+
+if(($sql_res_new2 = $mysqlcon->query("SELECT COUNT(*) AS newWeek FROM `$dbname`.`user` WHERE `firstcon` >= " .(time() - 604800))->fetch(PDO::FETCH_ASSOC)) === false) {
+    $err_msg = print_r($mysqlcon->errorInfo(), true); $err_lvl = 3;
+}
+
+if(($sql_res_new3 = $mysqlcon->query("SELECT COUNT(*) AS newMonth FROM `$dbname`.`user` WHERE `firstcon` >= " .(time() - 2592000))->fetch(PDO::FETCH_ASSOC)) === false) {
+    $err_msg = print_r($mysqlcon->errorInfo(), true); $err_lvl = 3;
+}
+
+if(($sql_res_new4 = $mysqlcon->query("SELECT COUNT(*) AS newQuarter FROM `$dbname`.`user` WHERE `firstcon` >= " .(time() - 7776000))->fetch(PDO::FETCH_ASSOC)) === false) {
+    $err_msg = print_r($mysqlcon->errorInfo(), true); $err_lvl = 3;
+}
+
 
 require_once('nav.php');
 ?>
@@ -186,6 +182,32 @@ require_once('nav.php');
 						</div>
 					</div>
 				</div>
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">
+                                <div class="row">
+                                    <div class="col-xs-9">
+                                        <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i>&nbsp;Nowych użytkowników</h3>
+                                    </div>
+                                    <div class="col-xs-3">
+                                        <div class="btn-group pull-right">
+                                            <select class="form-control" id="periodnew">
+                                                <option value="day"><?PHP echo $lang['stix0013']; ?></option>
+                                                <option value="week"><?PHP echo $lang['stix0014']; ?></option>
+                                                <option value="month"><?PHP echo $lang['stix0015']; ?></option>
+                                                <option value="3month"><?PHP echo $lang['stix0064']; ?></option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div id="serverusagenewchart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 				<div class="row">
 					<div class="col-lg-3">
 						<div class="panel panel-primary">
@@ -339,6 +361,96 @@ require_once('nav.php');
 						</div>
 					</div>
 				</div>
+                <div class="row">
+                    <div class="col-lg-3 col-md-6">
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">
+                                <div class="row">
+                                    <div class="col-xs-3">
+                                        <i class="fa fa-users fa-5x"></i>
+                                    </div>
+                                    <div class="col-xs-9 text-right">
+                                        <div class="huge"><?PHP echo $sql_res_new['newToday']; ?></div>
+                                        <div>Nowych użytkowników w ciągu ostatnich 24 godzin</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="list_rankup.php?sort=firstcon&order=desc&search=filter:firstcon:%3e:<?PHP echo time()-86400; ?>:">
+                                <div class="panel-footer">
+                                    <span class="pull-left">Lista nowych ostatnie 24 godziny</span>
+                                    <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                                    <div class="clearfix"></div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="panel panel-green">
+                            <div class="panel-heading">
+                                <div class="row">
+                                    <div class="col-xs-3">
+                                        <i class="fa fa-users fa-5x"></i>
+                                    </div>
+                                    <div class="col-xs-9 text-right">
+                                        <div class="huge"><?PHP echo $sql_res_new2['newWeek']; ?></div>
+                                        <div>Nowych użytkowników w ciągu ostatnich 7 dni</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="list_rankup.php?sort=firstcon&order=desc&search=filter:firstcon:%3e:<?PHP echo time()-604800; ?>:">
+                                <div class="panel-footer">
+                                    <span class="pull-left">Lista nowych (ostatnie 7 dni)</span>
+                                    <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                                    <div class="clearfix"></div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="panel panel-yellow">
+                            <div class="panel-heading">
+                                <div class="row">
+                                    <div class="col-xs-3">
+                                        <i class="fa fa-users fa-5x"></i>
+                                    </div>
+                                    <div class="col-xs-9 text-right">
+                                        <div class="huge"><?PHP echo $sql_res_new3['newMonth']; ?></div>
+                                        <div>Nowych użytkowników w ciągu ostatnich 30 dni</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="list_rankup.php?sort=firstcon&order=desc&search=filter:firstcon:%3e:<?PHP echo time()-2592000; ?>:">
+                                <div class="panel-footer">
+                                    <span class="pull-left">Lista nowych (ostatnie 30 dni)</span>
+                                    <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                                    <div class="clearfix"></div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="panel panel-red">
+                            <div class="panel-heading">
+                                <div class="row">
+                                    <div class="col-xs-3">
+                                        <i class="fa fa-users fa-5x"></i>
+                                    </div>
+                                    <div class="col-xs-9 text-right">
+                                        <div class="huge"><?PHP echo $sql_res_new4['newQuarter']; ?></div>
+                                        <div>Nowych użytkowników w ciągu ostatnich 90 dni</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="list_rankup.php?sort=firstcon&order=desc&search=filter:firstcon:%3e:<?PHP echo time()-7776000; ?>:">
+                                <div class="panel-footer">
+                                    <span class="pull-left">Lista nowych (ostatnie 90 dni)</span>
+                                    <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                                    <div class="clearfix"></div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
 				<div class="row">
 					<div class="col-lg-6">
 						<h2><?PHP echo $lang['stix0020']; ?></h2>
@@ -415,28 +527,12 @@ require_once('nav.php');
 										echo ':'.$ts['voice']; ?></a></td>
 									</tr>
 									<tr>
-										<td><?PHP echo $lang['stix0038']; ?></td>
-										<td><?PHP if($sql_res['server_pass'] == '0')  {echo $lang['stix0039']; } else { echo $lang['stix0040']; } ?></td>
-									</tr>
-									<tr>
-										<td><?PHP echo $lang['stix0041']; ?></td>
-										<td><?PHP echo $sql_res['server_id'] ?></td>
-									</tr>
-									<tr>
 										<td><?PHP echo $lang['stix0042']; ?></td>
 										<td><?PHP echo $sql_res['server_platform'] ?></td>
 									</tr>
 									<tr>
 										<td><?PHP echo $lang['stix0043']; ?></td>
 										<td><?PHP echo substr($sql_res['server_version'], 0, strpos($sql_res['server_version'], ' ')); ?></td>
-									</tr>
-									<tr>
-										<td><?PHP echo $lang['stix0044']; ?></td>
-										<td><?PHP if($sql_res['server_creation_date']==0) { echo $lang['stix0051']; } else { echo date('d/m/Y', $sql_res['server_creation_date']);} ?></td>
-									</tr>
-									<tr>
-										<td><?PHP echo $lang['stix0045']; ?></td>
-										<td><?PHP if ($sql_res['server_weblist'] == 1) { echo '<a href="https://www.planetteamspeak.com/serverlist/result/server/ip/'; if($ts['host']=='localhost' || $ts['host']=='127.0.0.1') { echo $_SERVER['HTTP_HOST'];} else { echo $ts['host']; } echo ':'.$ts['voice'] .'" target="_blank" rel="noopener noreferrer">'.$lang['stix0046'].'</a>'; } else { echo $lang['stix0047']; } ?></td>
 									</tr>
 								</tbody>
 							</table>
