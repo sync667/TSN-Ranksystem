@@ -19,7 +19,7 @@ if ((time() - $job_check[ 'last_update' ][ 'timestamp' ]) < 259200 && !isset($_S
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="icon" href="/favicon.ico">
         <title>UseTS.PL - Rank System</title>
-        <link href="../libs/combined_st.css?v=<?PHP echo $currvers; ?>" rel="stylesheet">
+        <link href="../libs/combined_st.css?v=<?PHP echo $cfg['version_current_using']; ?>" rel="stylesheet">
         <?PHP
         $sitescript = basename($_SERVER[ 'SCRIPT_NAME' ]);
         switch ($sitescript) {
@@ -71,7 +71,7 @@ if ((time() - $job_check[ 'last_update' ][ 'timestamp' ]) < 259200 && !isset($_S
                 ?>
                 <script src="../libs/qb.js"></script><?PHP
         }
-        if (isset($shownav) && $shownav == 0) { ?>
+        if (isset($cfg['stats_show_site_navigation_switch']) && $cfg['stats_show_site_navigation_switch'] == 0) { ?>
             <style>
                 body {
                     margin-top: 0px !important
@@ -96,7 +96,7 @@ if ((time() - $job_check[ 'last_update' ][ 'timestamp' ]) < 259200 && !isset($_S
                     <h4 class="modal-title"><?PHP echo $lang[ 'stnv0001' ]; ?></h4>
                 </div>
                 <div class="modal-body">
-                    <p><?PHP echo $servernews; ?></p>
+                    <p><?PHP echo $cfg['stats_server_news']; ?></p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal"><?PHP echo $lang[ 'stnv0002' ]; ?></button>
@@ -198,7 +198,7 @@ if ((time() - $job_check[ 'last_update' ][ 'timestamp' ]) < 259200 && !isset($_S
         </div>
     </div>
 <?PHP
-if ($shownav == 1) {
+if ($cfg['stats_show_site_navigation_switch'] == 1) {
     ?>
     <div id="wrapper">
     <nav class="navbar navbar-inverse navbar-fixed-top">
@@ -220,17 +220,17 @@ if ($shownav == 1) {
                         <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
-                        <li role="presentation"><a role="menuitem" href="<?PHP echo "?sort=$keysort&amp;order=$keyorder&amp;user=50&amp;lang=$language&amp;search=$getstring"; ?>">50</a>
+                        <li role="presentation"><a role="menuitem" href="<?PHP echo "?sort=$keysort&amp;order=$keyorder&amp;user=50&amp;lang={$cfg['default_language']}&amp;search=$getstring"; ?>">50</a>
                         </li>
-                        <li role="presentation"><a role="menuitem" href="<?PHP echo "?sort=$keysort&amp;order=$keyorder&amp;user=100&amp;lang=$language&amp;search=$getstring"; ?>">100</a>
+                        <li role="presentation"><a role="menuitem" href="<?PHP echo "?sort=$keysort&amp;order=$keyorder&amp;user=100&amp;lang={$cfg['default_language']}&amp;search=$getstring"; ?>">100</a>
                         </li>
-                        <li role="presentation"><a role="menuitem" href="<?PHP echo "?sort=$keysort&amp;order=$keyorder&amp;user=250&amp;lang=$language&amp;search=$getstring"; ?>">250</a>
+                        <li role="presentation"><a role="menuitem" href="<?PHP echo "?sort=$keysort&amp;order=$keyorder&amp;user=250&amp;lang={$cfg['default_language']}&amp;search=$getstring"; ?>">250</a>
                         </li>
-                        <li role="presentation"><a role="menuitem" href="<?PHP echo "?sort=$keysort&amp;order=$keyorder&amp;user=500&amp;lang=$language&amp;search=$getstring"; ?>">500</a>
+                        <li role="presentation"><a role="menuitem" href="<?PHP echo "?sort=$keysort&amp;order=$keyorder&amp;user=500&amp;lang={$cfg['default_language']}&amp;search=$getstring"; ?>">500</a>
                         </li>
                         <li role="separator" class="divider"></li>
                         <li role="presentation"><a role="menuitem"
-                                                   href="<?PHP echo "?sort=$keysort&amp;order=$keyorder&amp;user=all&amp;lang=$language&amp;search=$getstring"; ?>"><?PHP echo $lang[ 'stnv0026' ]; ?></a>
+                                                   href="<?PHP echo "?sort=$keysort&amp;order=$keyorder&amp;user=all&amp;lang={$cfg['default_language']}&amp;search=$getstring"; ?>"><?PHP echo $lang[ 'stnv0026' ]; ?></a>
                         </li>
                     </ul>
                 </li>
@@ -272,14 +272,14 @@ if ($shownav == 1) {
                         }
                     } elseif ($_SESSION[ $rspathhex . 'connected' ] == 0) {
                         echo '<li><a href="ts3server://';
-                        if (($ts[ 'host' ] == 'localhost' || $ts[ 'host' ] == '127.0.0.1') && strpos($_SERVER[ 'HTTP_HOST' ], 'www.') == 0) {
+                        if (($cfg['teamspeak_host_address']=='localhost' || $cfg['teamspeak_host_address']=='127.0.0.1') && strpos($_SERVER['HTTP_HOST'], 'www.') == 0) {
                             echo preg_replace('/www\./', '', $_SERVER[ 'HTTP_HOST' ]);
-                        } elseif ($ts[ 'host' ] == 'localhost' || $ts[ 'host' ] == '127.0.0.1') {
-                            echo $_SERVER[ 'HTTP_HOST' ];
+                        } elseif ($cfg['teamspeak_host_address']=='localhost' || $cfg['teamspeak_host_address'] == '127.0.0.1') {
+                            echo $cfg['teamspeak_host_address'];
                         } else {
                             echo $ts[ 'host' ];
                         }
-                        echo ':' . $ts[ 'voice' ];
+                        echo ':' . $cfg['teamspeak_voice_port'];
                         echo '"><i class="fa fa-fw fa-headphones"></i>&nbsp;' . $lang[ 'stnv0043' ] . '</a></li>';
                     }
                     ?>
