@@ -16,6 +16,7 @@ require_once('../other/config.php');
 require_once('../other/phpcommand.php');
 
 function enter_logfile($cfg,$loglevel,$logtext,$norotate = false) {
+	if($loglevel > $cfg['logs_debug_level']) return;
 	$file = $cfg['logs_path'].'ranksystem.log';
 	if ($loglevel == 1) {
 		$loglevel = "  CRITICAL  ";
@@ -33,12 +34,12 @@ function enter_logfile($cfg,$loglevel,$logtext,$norotate = false) {
 	$loghandle = fopen($file, 'a');
 	fwrite($loghandle, DateTime::createFromFormat('U.u', number_format(microtime(true), 6, '.', ''))->setTimeZone(new DateTimeZone($cfg['logs_timezone']))->format("Y-m-d H:i:s.u ").$loglevel.$logtext."\n");
 	fclose($loghandle);
-	if($norotate == false && filesize($file) > 5242880) {
+	if($norotate == false && filesize($file) > ($cfg['logs_rotation_size'] * 1048576)) {
 		$loghandle = fopen($file, 'a');
 		fwrite($loghandle, DateTime::createFromFormat('U.u', number_format(microtime(true), 6, '.', ''))->setTimeZone(new DateTimeZone($cfg['logs_timezone']))->format("Y-m-d H:i:s.u ")."  NOTICE    Logfile filesie of 5 MiB reached.. Rotate logfile.\n");
 		fclose($loghandle);
 		$file2 = "$file.old";
-		if (file_exists($file2)) unlink($file2);
+		if(file_exists($file2)) unlink($file2);
 		rename($file, $file2);
 		$loghandle = fopen($file, 'a');
 		fwrite($loghandle, DateTime::createFromFormat('U.u', number_format(microtime(true), 6, '.', ''))->setTimeZone(new DateTimeZone($cfg['logs_timezone']))->format("Y-m-d H:i:s.u ")."  NOTICE    Rotated logfile...\n");
@@ -104,36 +105,41 @@ if (($last_access['webinterface_access_last'] + 1) >= time()) {
 			$ts3->selfUpdate(array('client_nickname' => "Ranksystem - Reset Password"));
 		} catch (Exception $e) { }
 		
-		usleep($cfg['teamspeak_query_command_delay']);
-		$allclients = $ts3->clientList();
-		$pwd = substr(str_shuffle("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#*+;:-_~?=%&$§!()"),0,12);
-		$cfg['webinterface_pass'] = password_hash($pwd, PASSWORD_DEFAULT);
+		try {
+			usleep($cfg['teamspeak_query_command_delay']);
+			$allclients = $ts3->clientList();
 
-		foreach ($allclients as $client) {
-			if(in_array($client['client_unique_identifier'] , $cfg['webinterface_admin_client_unique_id_list'])) {
-				$checkuuid = 1;
-				if($client['connection_client_ip'] == getclientip()) {
-					$checkip = 1;
-					if($mysqlcon->exec("INSERT INTO `$dbname`.`cfg_params` (`param`,`value`) VALUES ('webinterface_pass','{$cfg['webinterface_pass']}'),('webinterface_access_last','0') ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)") === false) {
-						$err_msg = $lang['isntwidbmsg'].print_r($mysqlcon->errorInfo(), true); $err_lvl = 3;
-					} else {
-						try {
-							usleep($cfg['teamspeak_query_command_delay']);
-							$ts3->clientGetByUid($client['client_unique_identifier'])->message(sprintf($lang['wirtpw4'], $cfg['webinterface_user'], $pwd, '[URL=http'.(!empty($_SERVER['HTTPS'])?"s":"").'://'.$_SERVER['SERVER_NAME'].dirname($_SERVER['SCRIPT_NAME']).']','[/URL]'));
-							$err_msg = sprintf($lang['wirtpw5'],'<a href="http'.(!empty($_SERVER['HTTPS'])?"s":"").'://'.$_SERVER['SERVER_NAME'].dirname($_SERVER['SCRIPT_NAME']).'/">','</a>'); $err_lvl = 1;
-							enter_logfile($cfg,3,sprintf($lang['wirtpw6'],getclientip()));
-						} catch (Exception $e) {
-							$err_msg = $lang['errorts3'].$e->getCode().': '.$e->getMessage(); $err_lvl = 3;
+			$pwd = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#*+;:-_~?=%&!()'),0,12);
+			$cfg['webinterface_pass'] = password_hash($pwd, PASSWORD_DEFAULT);
+
+			foreach($allclients as $client) {
+				if(array_key_exists(htmlspecialchars($client['client_unique_identifier'], ENT_QUOTES), $cfg['webinterface_admin_client_unique_id_list'])) {
+					$checkuuid = 1;
+					if($client['connection_client_ip'] == getclientip()) {
+						$checkip = 1;
+						if($mysqlcon->exec("INSERT INTO `$dbname`.`cfg_params` (`param`,`value`) VALUES ('webinterface_pass','{$cfg['webinterface_pass']}'),('webinterface_access_last','0') ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)") === false) {
+							$err_msg .= $lang['isntwidbmsg'].print_r($mysqlcon->errorInfo(), true); $err_lvl = 3;
+						} else {
+							try {
+								usleep($cfg['teamspeak_query_command_delay']);
+								$ts3->clientGetByUid($client['client_unique_identifier'])->message(sprintf($lang['wirtpw4'], $cfg['webinterface_user'], $pwd, '[URL=http'.(!empty($_SERVER['HTTPS'])?"s":"").'://'.$_SERVER['SERVER_NAME'].dirname($_SERVER['SCRIPT_NAME']).']','[/URL]'));
+								$err_msg .= sprintf($lang['wirtpw5'],'<a href="http'.(!empty($_SERVER['HTTPS'])?"s":"").'://'.$_SERVER['SERVER_NAME'].dirname($_SERVER['SCRIPT_NAME']).'/">','</a>'); $err_lvl = 1;
+								enter_logfile($cfg,3,sprintf($lang['wirtpw6'],getclientip()));
+							} catch (Exception $e) {
+								$err_msg .= $lang['errorts3'].$e->getCode().': '.$e->getMessage(); $err_lvl = 3;
+							}
 						}
 					}
 				}
 			}
-		}
-		
-		if (!isset($checkuuid)) {
-			$err_msg = $lang['wirtpw2']; $err_lvl = 3;
-		} elseif (!isset($checkip)) {
-			$err_msg = $lang['wirtpw3']; $err_lvl = 3;
+
+			if (!isset($checkuuid)) {
+				$err_msg = $lang['wirtpw2']; $err_lvl = 3;
+			} elseif (!isset($checkip)) {
+				$err_msg = $lang['wirtpw3']; $err_lvl = 3;
+			}
+		} catch (Exception $e) {
+			$err_msg = $lang['errorts3'].$e->getCode().': '.$e->getMessage(); $err_lvl = 3;
 		}
 	} catch (Exception $e) {
 		$err_msg = $lang['errorts3'].$e->getCode().': '.$e->getMessage(); $err_lvl = 3;

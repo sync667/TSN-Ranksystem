@@ -1,5 +1,6 @@
 <?PHP
 function clean($ts3,$mysqlcon,$lang,$cfg,$dbname,$select_arr) {
+	$starttime = microtime(true);
 	$nowtime = time();
 	$sqlexec = '';
 
@@ -14,7 +15,6 @@ function clean($ts3,$mysqlcon,$lang,$cfg,$dbname,$select_arr) {
 			enter_logfile($cfg,5,"  Get TS3 Clientlist...");
 			while($getclientdblist=$ts3->clientListDb($start, $break)) {
 				check_shutdown($cfg);
-				$dummy = $mysqlcon->query("SELECT * FROM `$dbname`.`job_check`");   //TeamSpeak became very slow on sending dblist with 3.3.0.. needs to hold the connection
 				$clientdblist=array_merge($clientdblist, $getclientdblist);
 				$start=$start+$break;
 				$count_tsuser=array_shift($getclientdblist);
@@ -29,7 +29,7 @@ function clean($ts3,$mysqlcon,$lang,$cfg,$dbname,$select_arr) {
 				$single_uuid = $uuidts['client_unique_identifier']->toString();
 				$uidarrts[$single_uuid]= 1;
 			}
-			unset($clientdblist);
+			unset($clientdblist,$getclientdblist,$start,$break,$single_uuid);
 			
 			foreach($select_arr['all_user'] as $uuid => $value) {
 				if(isset($uidarrts[$uuid])) {
@@ -39,10 +39,9 @@ function clean($ts3,$mysqlcon,$lang,$cfg,$dbname,$select_arr) {
 					$countdel++;
 				}
 			}
-			unset($uidarrts);
 			enter_logfile($cfg,4,"  ".sprintf($lang['cleants'], $countts, $count_tsuser['count']));
 			enter_logfile($cfg,4,"  ".sprintf($lang['cleanrs'], count($select_arr['all_user'])));
-
+			unset($uidarrts,$count_tsuser,$countts);
 			if(isset($deleteuuids)) {
 				$alldeldata = '';
 				$fsfilelist = opendir(substr(__DIR__,0,-4).'avatars/');
@@ -51,7 +50,7 @@ function clean($ts3,$mysqlcon,$lang,$cfg,$dbname,$select_arr) {
 						$fsfilelistarray[$fsfile] = filemtime(substr(__DIR__,0,-4).'avatars/'.$fsfile);
 					}
 				}
-				unset($fsfilelist);
+				unset($fsfilelist,$fsfile);
 				$avatarfilepath	= substr(__DIR__,0,-4).'avatars/';
 				$convert = array('a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p');
 				foreach ($deleteuuids as $uuid) {
@@ -70,7 +69,7 @@ function clean($ts3,$mysqlcon,$lang,$cfg,$dbname,$select_arr) {
 						}
 					}
 				}
-				unset($$deleteuuids);
+				unset($deleteuuids,$avatarfilepath,$convert,$uuidasbase16);
 				$alldeldata = substr($alldeldata, 0, -1);
 				$alldeldata = "(".$alldeldata.")";
 				if ($alldeldata != '') {
@@ -90,13 +89,11 @@ function clean($ts3,$mysqlcon,$lang,$cfg,$dbname,$select_arr) {
 	
 	// clean usersnaps older then 1 month + clean old server usage - older then a year
 	if ($select_arr['job_check']['clean_db']['timestamp'] < ($nowtime - 86400)) {
-		$sqlexec .= "DELETE `a` FROM `$dbname`.`user_snapshot` AS `a` CROSS JOIN(SELECT DISTINCT(`timestamp`) FROM `$dbname`.`user_snapshot` ORDER BY `timestamp` DESC LIMIT 1000 OFFSET 121) AS `b` WHERE `a`.`timestamp`=`b`.`timestamp`; DELETE FROM `$dbname`.`server_usage` WHERE `timestamp` < (UNIX_TIMESTAMP() - 31536000); DELETE `b` FROM `$dbname`.`user` AS `a` RIGHT JOIN `$dbname`.`stats_user` AS `b` ON `a`.`uuid`=`b`.`uuid` WHERE `a`.`uuid` IS NULL; UPDATE `$dbname`.`job_check` SET `timestamp`='$nowtime' WHERE `job_name`='clean_db'; DELETE FROM `$dbname`.`csrf_token` WHERE `timestamp` < (UNIX_TIMESTAMP() - 3600); ";
+		$sqlexec .= "DELETE `a` FROM `$dbname`.`user_snapshot` AS `a` CROSS JOIN(SELECT DISTINCT(`timestamp`) FROM `$dbname`.`user_snapshot` ORDER BY `timestamp` DESC LIMIT 1000 OFFSET 121) AS `b` WHERE `a`.`timestamp`=`b`.`timestamp`; DELETE FROM `$dbname`.`server_usage` WHERE `timestamp` < (UNIX_TIMESTAMP() - 31536000); DELETE `b` FROM `$dbname`.`user` AS `a` RIGHT JOIN `$dbname`.`stats_user` AS `b` ON `a`.`uuid`=`b`.`uuid` WHERE `a`.`uuid` IS NULL; UPDATE `$dbname`.`job_check` SET `timestamp`='$nowtime' WHERE `job_name`='clean_db'; DELETE FROM `$dbname`.`csrf_token` WHERE `timestamp` < (UNIX_TIMESTAMP() - 3600); DELETE `h` FROM `$dbname`.`user_iphash` AS `h` LEFT JOIN `$dbname`.`user` AS `u` ON `u`.`uuid` = `h`.`uuid` WHERE (`u`.`uuid` IS NULL OR `u`.`online`!=1); ";
 		enter_logfile($cfg,4,$lang['clean0003']);
 	}
 
-	// delete IP address of offline user
-	$sqlexec .= "DELETE `a` FROM `$dbname`.`user_iphash` AS `a` INNER JOIN `$dbname`.`user` AS `b` ON `a`.`uuid`=`b`.`uuid` WHERE `b`.`online`!=1; ";
-
+	enter_logfile($cfg,6,"clean needs: ".(number_format(round((microtime(true) - $starttime), 5),5)));
 	return($sqlexec);
 }
 ?>

@@ -68,7 +68,7 @@ if (isset($_POST['update']) && isset($db_csrf[$_POST['csrf_token']])) {
 		$err_lvl = 3;
     } else {
         $err_msg = $lang['wisvsuc']." ".sprintf($lang['wisvres'], '&nbsp;&nbsp;<form class="btn-group" name="restart" action="bot.php" method="POST"><input type="hidden" name="csrf_token" value="'.$csrf_token.'"><button
-		type="submit" class="btn btn-primary" name="restart"><i class="fa fa-fw fa-refresh"></i>&nbsp;'.$lang['wibot7'].'</button></form>');
+		type="submit" class="btn btn-primary" name="restart"><i class="fas fa-sync"></i>&nbsp;'.$lang['wibot7'].'</button></form>');
 		$err_lvl = NULL;
     }
 	$cfg['rankup_message_to_user'] = $_POST['rankup_message_to_user'];
@@ -99,7 +99,7 @@ if (isset($_POST['update']) && isset($db_csrf[$_POST['csrf_token']])) {
 							<div class="panel panel-default">
 								<div class="panel-body">
 									<div class="form-group">
-										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#wimsgusrdesc"><?php echo $lang['wimsgusr']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
+										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#wimsgusrdesc"><?php echo $lang['wimsgusr']; ?><i class="help-hover fas fa-question-circle"></i></label>
 										<div class="col-sm-8">
 											<?PHP if ($cfg['rankup_message_to_user_switch'] == 1) {
 												echo '<input id="switch-animate" type="checkbox" checked data-size="mini" name="rankup_message_to_user_switch" value="',$cfg['rankup_message_to_user_switch'],'">';
@@ -109,18 +109,18 @@ if (isset($_POST['update']) && isset($db_csrf[$_POST['csrf_token']])) {
 										</div>
 									</div>
 									<div class="form-group">
-										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#wimsgmsgdesc"><?php echo $lang['wimsgmsg']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
+										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#wimsgmsgdesc"><?php echo $lang['wimsgmsg']; ?><i class="help-hover fas fa-question-circle"></i></label>
 										<div class="col-sm-8">
-											<textarea class="form-control" rows="5" name="rankup_message_to_user" maxlength="500"><?php echo $cfg['rankup_message_to_user']; ?></textarea>
+											<textarea class="form-control" rows="5" name="rankup_message_to_user" maxlength="21588"><?php echo $cfg['rankup_message_to_user']; ?></textarea>
 										</div>
 									</div>
 								</div>
 							</div>
 							<div class="panel-body">
 								<div class="form-group">
-									<label class="col-sm-4 control-label" data-toggle="modal" data-target="#wimsgsndesc"><?php echo $lang['wimsgsn']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
+									<label class="col-sm-4 control-label" data-toggle="modal" data-target="#wimsgsndesc"><?php echo $lang['wimsgsn']; ?><i class="help-hover fas fa-question-circle"></i></label>
 									<div class="col-sm-8">
-										<textarea class="form-control" rows="15" name="stats_server_news" maxlength="5000"><?php echo $cfg['stats_server_news']; ?></textarea>
+										<textarea class="form-control" rows="15" name="stats_server_news" maxlength="21588"><?php echo $cfg['stats_server_news']; ?></textarea>
 									</div>
 								</div>
 							</div>
@@ -129,33 +129,33 @@ if (isset($_POST['update']) && isset($db_csrf[$_POST['csrf_token']])) {
 							<div class="panel panel-default">
 								<div class="panel-body">
 									<div class="form-group">
-										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#winxinfodesc"><?php echo $lang['winxinfo']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
+										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#winxinfodesc"><?php echo $lang['winxinfo']; ?><i class="help-hover fas fa-question-circle"></i></label>
 										<div class="col-sm-8">
 											<select class="selectpicker show-tick form-control" id="basic" name="rankup_next_message_mode">
 											<?PHP
-											echo '<option value="0"'; if($cfg['rankup_next_message_mode']=="0") echo " selected=selected"; echo '>',$lang['winxmode1'],'</option>';
-											echo '<option value="1"'; if($cfg['rankup_next_message_mode']=="1") echo " selected=selected"; echo '>',$lang['winxmode2'],'</option>';
-											echo '<option value="2"'; if($cfg['rankup_next_message_mode']=="2") echo " selected=selected"; echo '>',$lang['winxmode3'],'</option>';
+											echo '<option data-icon="fas fa-ban" value="0"'; if($cfg['rankup_next_message_mode']=="0") echo " selected=selected"; echo '>&nbsp;',$lang['winxmode1'],'</option>';
+											echo '<option data-icon="fas fa-clipboard-check" value="1"'; if($cfg['rankup_next_message_mode']=="1") echo " selected=selected"; echo '>&nbsp;',$lang['winxmode2'],'</option>';
+											echo '<option data-icon="fas fa-clipboard-list" value="2"'; if($cfg['rankup_next_message_mode']=="2") echo " selected=selected"; echo '>&nbsp;',$lang['winxmode3'],'</option>';
 											?>
 											</select>
 										</div>
 									</div>
 									<div class="form-group">
-										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#winxmsgdesc1"><?php echo $lang['winxmsg1']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
+										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#winxmsgdesc1"><?php echo $lang['winxmsg1']; ?><i class="help-hover fas fa-question-circle"></i></label>
 										<div class="col-sm-8">
-											<textarea class="form-control" rows="5" name="rankup_next_message_1" maxlength="500"><?php echo $cfg['rankup_next_message_1']; ?></textarea>
+											<textarea class="form-control" rows="5" name="rankup_next_message_1" maxlength="21588"><?php echo $cfg['rankup_next_message_1']; ?></textarea>
 										</div>
 									</div>
 									<div class="form-group">
-										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#winxmsgdesc2"><?php echo $lang['winxmsg2']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
+										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#winxmsgdesc2"><?php echo $lang['winxmsg2']; ?><i class="help-hover fas fa-question-circle"></i></label>
 										<div class="col-sm-8">
-											<textarea class="form-control" rows="5" name="rankup_next_message_2" maxlength="500"><?php echo $cfg['rankup_next_message_2']; ?></textarea>
+											<textarea class="form-control" rows="5" name="rankup_next_message_2" maxlength="21588"><?php echo $cfg['rankup_next_message_2']; ?></textarea>
 										</div>
 									</div>
 									<div class="form-group">
-										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#winxmsgdesc3"><?php echo $lang['winxmsg3']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
+										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#winxmsgdesc3"><?php echo $lang['winxmsg3']; ?><i class="help-hover fas fa-question-circle"></i></label>
 										<div class="col-sm-8">
-											<textarea class="form-control" rows="5" name="rankup_next_message_3" maxlength="500"><?php echo $cfg['rankup_next_message_3']; ?></textarea>
+											<textarea class="form-control" rows="5" name="rankup_next_message_3" maxlength="21588"><?php echo $cfg['rankup_next_message_3']; ?></textarea>
 										</div>
 									</div>
 								</div>
@@ -165,7 +165,7 @@ if (isset($_POST['update']) && isset($db_csrf[$_POST['csrf_token']])) {
 					<div class="row">&nbsp;</div>
 					<div class="row">
 						<div class="text-center">
-							<button type="submit" name="update" class="btn btn-primary"><?php echo $lang['wisvconf']; ?></button>
+							<button type="submit" class="btn btn-primary" name="update"><i class="fas fa-save"></i>&nbsp;<?php echo $lang['wisvconf']; ?></button>
 						</div>
 					</div>
 					<div class="row">&nbsp;</div>

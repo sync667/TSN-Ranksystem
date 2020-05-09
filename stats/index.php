@@ -17,30 +17,21 @@ require_once('../other/load_addons_config.php');
 
 $addons_config = load_addons_config($mysqlcon,$lang,$cfg,$dbname);
 
-if($cfg['default_language'] == "ar") {
-	require_once('../languages/nations_en.php');
-} elseif($cfg['default_language'] == "cz") {
-	require_once('../languages/nations_en.php');
-} elseif($cfg['default_language'] == "de") {
-	require_once('../languages/nations_de.php');
-} elseif($cfg['default_language'] == "en") {
-	require_once('../languages/nations_en.php');
-} elseif($cfg['default_language'] == "es") {
-	require_once('../languages/nations_es.php');
-} elseif($cfg['default_language'] == "fr") {
-	require_once('../languages/nations_fr.php');
-} elseif($cfg['default_language'] == "it") {
-	require_once('../languages/nations_it.php');
-} elseif($cfg['default_language'] == "nl") {
-	require_once('../languages/nations_en.php');
-} elseif($cfg['default_language'] == "pl") {
-	require_once('../languages/nations_pl.php');
-} elseif($cfg['default_language'] == "ro") {
-	require_once('../languages/nations_en.php');
-} elseif($cfg['default_language'] == "ru") {
-	require_once('../languages/nations_ru.php');
-} elseif($cfg['default_language'] == "pt") {
-	require_once('../languages/nations_pt.php');
+if(is_dir(substr(__DIR__,0,-5).'languages/')) {
+	foreach(scandir(substr(__DIR__,0,-5).'languages/') as $file) {
+		if ('.' === $file || '..' === $file || is_dir($file)) continue;
+		$sep_lang = preg_split("/[._]/", $file);
+		if(isset($sep_lang[0]) && $sep_lang[0] == 'nations' && isset($sep_lang[1]) && strlen($sep_lang[1]) == 2 && isset($sep_lang[2]) && strtolower($sep_lang[2]) == 'php') {
+			if(strtolower($cfg['default_language']) == strtolower($sep_lang[1])) {
+				require_once('../languages/nations_'.$sep_lang[1].'.php');
+				$required_nations = 1;
+				break;
+			}
+		}
+	}
+	if(!isset($required_nations)) {
+		require_once('../languages/nations_en.php');
+	}
 }
 
 if(!isset($_SESSION[$rspathhex.'tsuid'])) {
@@ -67,7 +58,7 @@ require_once('nav.php');
 						<h1 class="page-header">
 							<?PHP echo $lang['stix0001']; ?>
 							<a href="#infoModal" data-toggle="modal" class="btn btn-primary">
-								<span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+								<span class="fas fa-info-circle" aria-hidden="true"></span>
 							</a>
 						</h1>
 					</div>
@@ -78,7 +69,7 @@ require_once('nav.php');
 							<div class="panel-heading">
 								<div class="row">
 									<div class="col-xs-3">
-										<i class="fa fa-users fa-5x"></i>
+										<i class="fas fa-users fa-5x"></i>
 									</div>
 									<div class="col-xs-9 text-right">
 										<div class="huge"><?PHP echo $sql_res['total_user'] ?></div>
@@ -89,7 +80,7 @@ require_once('nav.php');
 							<a href="list_rankup.php">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0003']; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -100,7 +91,7 @@ require_once('nav.php');
 							<div class="panel-heading">
 								<div class="row">
 									<div class="col-xs-3">
-										<i class="fa fa-clock-o fa-5x"></i>
+										<i class="fas fa-clock fa-5x"></i>
 									</div>
 									<div class="col-xs-9 text-right">
 										<div class="huge"><?PHP if(round(($sql_res['total_online_time'] / 86400)) == 1) { echo sprintf($lang['day'], round(($sql_res['total_online_time'] / 86400))); } else { echo sprintf($lang['days'], round(($sql_res['total_online_time'] / 86400))); } ?></div>
@@ -111,7 +102,7 @@ require_once('nav.php');
 							<a href="top_all.php">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0005']; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -122,7 +113,7 @@ require_once('nav.php');
 							<div class="panel-heading">
 								<div class="row">
 									<div class="col-xs-3">
-										<i class="fa fa-clock-o fa-5x"></i>
+										<i class="fas fa-clock fa-5x"></i>
 									</div>
 									<div class="col-xs-9 text-right">
 										<div class="huge"><?PHP if(round(($sql_res['total_online_month'] / 86400)) == 1) { echo sprintf($lang['day'], round(($sql_res['total_online_month'] / 86400))); } else { echo sprintf($lang['days'], round(($sql_res['total_online_month'] / 86400))); } ?></div>
@@ -133,7 +124,7 @@ require_once('nav.php');
 							<a href="top_month.php">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0006']; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -144,7 +135,7 @@ require_once('nav.php');
 							<div class="panel-heading">
 								<div class="row">
 									<div class="col-xs-3">
-										<i class="fa fa-clock-o fa-5x"></i>
+										<i class="fas fa-clock fa-5x"></i>
 									</div>
 									<div class="col-xs-9 text-right">
 										<div class="huge"><?PHP if(round(($sql_res['total_online_week'] / 86400)) == 1) { echo sprintf($lang['day'], round(($sql_res['total_online_week'] / 86400))); } else { echo sprintf($lang['days'], round(($sql_res['total_online_week'] / 86400))); } ?></div>
@@ -155,7 +146,7 @@ require_once('nav.php');
 							<a href="top_week.php">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0007']; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -167,10 +158,10 @@ require_once('nav.php');
 						<div class="panel panel-primary">
 							<div class="panel-heading">
 								<div class="row">
-									<div class="col-xs-9">
-										<h3 class="panel-title"><i class="fa fa-bar-chart-o"></i>&nbsp;<?PHP echo $lang['stix0008']; ?></h3>
+									<div class="col-xs-6">
+										<h3 class="panel-title"><i class="fas fa-chart-area"></i>&nbsp;<?PHP echo $lang['stix0008']; ?></h3>
 									</div>
-									<div class="col-xs-3">
+									<div class="col-xs-6">
 										<div class="btn-group pull-right">
 										  <select class="form-control" id="period">
 											<option value="day"><?PHP echo $lang['stix0013']; ?></option>
@@ -192,7 +183,7 @@ require_once('nav.php');
 					<div class="col-lg-3">
 						<div class="panel panel-primary">
 							<div class="panel-heading">
-								<h3 class="panel-title"><i class="fa fa-long-arrow-right"></i>&nbsp;<?PHP echo $lang['stix0016']; ?></h3>
+								<h3 class="panel-title"><i class="fas fa-chart-bar"></i>&nbsp;<?PHP echo $lang['stix0016']; ?></h3>
 							</div>
 							<div class="panel-body">
 								<div id="time-gap-donut"></div>
@@ -202,7 +193,7 @@ require_once('nav.php');
 					<div class="col-lg-3">
 						<div class="panel panel-green">
 							<div class="panel-heading">
-								<h3 class="panel-title"><i class="fa fa-long-arrow-right"></i>&nbsp;<?PHP echo $lang['stix0017']; ?></h3>
+								<h3 class="panel-title"><i class="fas fa-chart-bar"></i>&nbsp;<?PHP echo $lang['stix0017']; ?></h3>
 							</div>
 							<div class="panel-body">
 								<div id="client-version-donut"></div>
@@ -210,7 +201,7 @@ require_once('nav.php');
 							<a href="versions.php">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0061']; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -219,7 +210,7 @@ require_once('nav.php');
 					<div class="col-lg-3">
 						<div class="panel panel-yellow">
 							<div class="panel-heading">
-								<h3 class="panel-title"><i class="fa fa-long-arrow-right"></i>&nbsp;<?PHP echo $lang['stix0018']; ?></h3>
+								<h3 class="panel-title"><i class="fas fa-chart-bar"></i>&nbsp;<?PHP echo $lang['stix0018']; ?></h3>
 							</div>
 							<div class="panel-body">
 								<div id="user-descent-donut"></div>
@@ -227,7 +218,7 @@ require_once('nav.php');
 							<a href="nations.php">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0062']; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -236,7 +227,7 @@ require_once('nav.php');
 					<div class="col-lg-3">
 						<div class="panel panel-red">
 							<div class="panel-heading">
-								<h3 class="panel-title"><i class="fa fa-long-arrow-right"></i>&nbsp;<?PHP echo $lang['stix0019']; ?></h3>
+								<h3 class="panel-title"><i class="fas fa-chart-bar"></i>&nbsp;<?PHP echo $lang['stix0019']; ?></h3>
 							</div>
 							<div class="panel-body">
 								<div id="user-platform-donut"></div>
@@ -244,7 +235,7 @@ require_once('nav.php');
 							<a href="platforms.php">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0063']; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -257,7 +248,7 @@ require_once('nav.php');
 							<div class="panel-heading">
 								<div class="row">
 									<div class="col-xs-3">
-										<i class="fa fa-users fa-5x"></i>
+										<i class="fas fa-users fa-5x"></i>
 									</div>
 									<div class="col-xs-9 text-right">
 										<div class="huge"><?PHP echo $sql_res['user_today']; ?></div>
@@ -268,7 +259,7 @@ require_once('nav.php');
 							<a href="list_rankup.php?sort=lastseen&order=desc&search=filter:lastseen:%3e:<?PHP echo time()-86400; ?>:">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0059'],' (',$lang['stix0055'],')'; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -279,7 +270,7 @@ require_once('nav.php');
 							<div class="panel-heading">
 								<div class="row">
 									<div class="col-xs-3">
-										<i class="fa fa-users fa-5x"></i>
+										<i class="fas fa-users fa-5x"></i>
 									</div>
 									<div class="col-xs-9 text-right">
 										<div class="huge"><?PHP echo $sql_res['user_week']; ?></div>
@@ -290,7 +281,7 @@ require_once('nav.php');
 							<a href="list_rankup.php?sort=lastseen&order=desc&search=filter:lastseen:%3e:<?PHP echo time()-604800; ?>:">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0059'],' (',sprintf($lang['stix0056'], '7'),')'; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -301,7 +292,7 @@ require_once('nav.php');
 							<div class="panel-heading">
 								<div class="row">
 									<div class="col-xs-3">
-										<i class="fa fa-users fa-5x"></i>
+										<i class="fas fa-users fa-5x"></i>
 									</div>
 									<div class="col-xs-9 text-right">
 										<div class="huge"><?PHP echo $sql_res['user_month']; ?></div>
@@ -312,7 +303,7 @@ require_once('nav.php');
 							<a href="list_rankup.php?sort=lastseen&order=desc&search=filter:lastseen:%3e:<?PHP echo time()-2592000; ?>:">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0059'],' (',sprintf($lang['stix0056'], '30'),')'; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -323,7 +314,7 @@ require_once('nav.php');
 							<div class="panel-heading">
 								<div class="row">
 									<div class="col-xs-3">
-										<i class="fa fa-users fa-5x"></i>
+										<i class="fas fa-users fa-5x"></i>
 									</div>
 									<div class="col-xs-9 text-right">
 										<div class="huge"><?PHP echo $sql_res['user_quarter']; ?></div>
@@ -334,7 +325,7 @@ require_once('nav.php');
 							<a href="list_rankup.php?sort=lastseen&order=desc&search=filter:lastseen:%3e:<?PHP echo time()-7776000; ?>:">
 								<div class="panel-footer">
 									<span class="pull-left"><?PHP echo $lang['stix0059'],' (',sprintf($lang['stix0056'], '90'),')'; ?></span>
-									<span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+									<span class="pull-right"><i class="fas fa-arrow-circle-right"></i></span>
 									<div class="clearfix"></div>
 								</div>
 							</a>
@@ -500,5 +491,7 @@ if (isset($nation[$sql_res['country_nation_name_5']])) {
 <input type="hidden" id="tsn31" value="<?PHP echo $sql_res['platform_4']; ?>">
 <input type="hidden" id="tsn32" value="<?PHP echo $sql_res['platform_5']; ?>">
 <input type="hidden" id="tsn33" value="<?PHP echo $sql_res['platform_other']; ?>">
+<input type="hidden" id="tsn34" value="<?PHP echo ($sql_res['server_used_slots'] + $sql_res['server_free_slots']); ?>">
+<input type="hidden" id="tsn35" value="<?PHP if($cfg['stats_show_maxclientsline_switch']==1) { echo "on"; } ?>">
 </body>
 </html>

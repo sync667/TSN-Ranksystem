@@ -1,77 +1,122 @@
 <?PHP
 function calc_user($ts3,$mysqlcon,$lang,$cfg,$dbname,$allclients,$phpcommand,$select_arr) {
+	$starttime = microtime(true);
 	$nowtime = time();
 	$sqlexec = '';
 
 	if(empty($cfg['rankup_definition'])) {
-		enter_logfile($cfg,1,"calc_user:".$lang['wiconferr']."Shuttin down!\n\n");
-		exit;
+		shutdown($mysqlcon,$cfg,1,"calc_user:".$lang['wiconferr']);
 	}
-	if($select_arr['job_check']['calc_user_lastscan']['timestamp'] < ($nowtime - 1800)) {
-		enter_logfile($cfg,4,"Much time gone since last scan.. reset time difference to zero.");
-		$select_arr['job_check']['calc_user_lastscan']['timestamp'] = $nowtime;
-	} elseif($select_arr['job_check']['calc_user_lastscan']['timestamp'] > $nowtime) {
-		enter_logfile($cfg,4,"Negative time between now and last scan (Error in your server time!).. reset time difference to zero.");
-		$select_arr['job_check']['calc_user_lastscan']['timestamp'] = $nowtime;
-	}
-
-	$sqlexec .= "UPDATE `$dbname`.`job_check` SET `timestamp`='$nowtime' WHERE `job_name`='calc_user_lastscan'; ";
-
-	krsort($cfg['rankup_definition']);
-	$yetonline = array();
-	$updatedata = array();
 	
+	$addtime = $nowtime - $select_arr['job_check']['calc_user_lastscan']['timestamp'];
+
+	if($addtime > 1800) {
+		enter_logfile($cfg,4,"Much time gone since last scan.. set addtime to 1 second.");
+		$addtime = 1;
+	} elseif($addtime < 0) {
+		enter_logfile($cfg,3,"Negative time valie (now < last scan).. Error in your machine time!.. set addtime to 1 second.");
+		$addtime = 1;
+	}
+
+	$sqlexec .= "UPDATE `$dbname`.`job_check` SET `timestamp`=$nowtime WHERE `job_name`='calc_user_lastscan'; UPDATE `$dbname`.`user` SET `online`=0 WHERE `online`=1; ";
+
+	$multipleonline = $updatedata = $insertdata = array();
+
 	if(isset($select_arr['admin_addtime']) && count($select_arr['admin_addtime']) != 0) {
 		foreach($select_arr['admin_addtime'] as $uuid => $value) {
 			if(isset($select_arr['all_user'][$uuid])) {
+				$sqlexec2 = '';
 				$isonline = 0;
 				foreach($allclients as $client) {
 					if($client['client_unique_identifier'] == $uuid) {
 						$isonline = 1;
-						$select_arr['all_user'][$uuid]['count'] += $value['timecount'];
+						if($value['timecount'] < 0) {
+							$select_arr['all_user'][$uuid]['count'] += $value['timecount'];
+							if($select_arr['all_user'][$uuid]['count'] < 0) {
+								$select_arr['all_user'][$uuid]['count'] = 0;
+								$select_arr['all_user'][$uuid]['idle'] = 0;
+							} elseif ($select_arr['all_user'][$uuid]['idle'] > $select_arr['all_user'][$uuid]['count']) {
+								$select_arr['all_user'][$uuid]['idle'] = $select_arr['all_user'][$uuid]['count'];
+							}
+						} else {
+							$select_arr['all_user'][$uuid]['count'] += $value['timecount'];
+						}
 					}
 				}
 				if($isonline != 1) {
-					$sqlexec .= "UPDATE `$dbname`.`user` SET `count`=`count` + ".$value['timecount']." WHERE `uuid`='$uuid'; ";
+					if(($user = $mysqlcon->query("SELECT `uuid`,`count`,`idle` FROM `$dbname`.`user` WHERE `uuid`='{$uuid}'")->fetchAll(PDO::FETCH_ASSOC|PDO::FETCH_UNIQUE)) === false) {
+						enter_logfile($cfg,2,"Database error on selecting user (admin function remove/add time): ".print_r($mysqlcon->errorInfo(), true));
+					} else {
+						if($value['timecount'] < 0) {
+							$user[$uuid]['count'] += $value['timecount'];
+							if($user[$uuid]['count'] < 0) {
+								$user[$uuid]['count'] = 0;
+								$user[$uuid]['idle'] = 0;
+							} elseif ($user[$uuid]['idle'] > $user[$uuid]['count']) {
+								$user[$uuid]['idle'] = $user[$uuid]['count'];
+							}
+						} else {
+							$user[$uuid]['count'] += $value['timecount'];
+						}
+						$sqlexec2 .= "UPDATE `$dbname`.`user` SET `count`='{$user[$uuid]['count']}', `idle`='{$user[$uuid]['idle']}' WHERE `uuid`='{$uuid}'; ";
+					}
 				}
-				$sqlexec .= "DELETE FROM `$dbname`.`admin_addtime` WHERE `timestamp`=".$value['timestamp']." AND `uuid`='$uuid'; ";
-				$sqlexec .= "UPDATE `$dbname`.`user_snapshot` SET `count`=`count` + ".$value['timecount']." WHERE `uuid`='$uuid'; ";
+				$sqlexec2 .= "DELETE FROM `$dbname`.`admin_addtime` WHERE `timestamp`=".$value['timestamp']." AND `uuid`='$uuid'; ";
+				if(($usersnap = $mysqlcon->query("SELECT `timestamp`,`uuid`,`count`,`idle` FROM `$dbname`.`user_snapshot` WHERE `uuid`='{$uuid}'")->fetchAll(PDO::FETCH_ASSOC|PDO::FETCH_UNIQUE)) === false) {
+					enter_logfile($cfg,2,"Database error on selecting user (admin function remove/add time): ".print_r($mysqlcon->errorInfo(), true));
+				} else {
+					foreach($usersnap as $timestamp => $valuesnap) {
+						if($value['timecount'] < 0) {
+							$valuesnap[$timestamp]['count'] += $value['timecount'];
+							if($valuesnap[$timestamp]['count'] < 0) {
+								$valuesnap[$timestamp]['count'] = 0;
+								$valuesnap[$timestamp]['idle'] = 0;
+							} elseif ($valuesnap[$timestamp]['idle'] > $valuesnap[$timestamp]['count']) {
+								$valuesnap[$timestamp]['idle'] = $valuesnap[$timestamp]['count'];
+							}
+						} else {
+							$valuesnap[$timestamp]['count'] += $value['timecount'];
+						}
+						$sqlexec2 .= "UPDATE `$dbname`.`user_snapshot` SET `count`='{$valuesnap[$timestamp]['count']}', `idle`='{$valuesnap[$timestamp]['idle']}' WHERE `uuid`='{$uuid}' AND `timestamp`='{$timestamp}'; ";
+					}
+				}
+				if($mysqlcon->exec($sqlexec2) === false) {
+					enter_logfile($cfg,2,"Database error on updating user (admin function remove/add time): ".print_r($mysqlcon->errorInfo(), true));
+				}
 				enter_logfile($cfg,4,sprintf($lang['sccupcount2'],$value['timecount'],$uuid));
+				unset($sqlexec2, $user, $usersnap);
 			}
 		}
 	}
 	
 	foreach ($allclients as $client) {
-		$cldbid = $client['client_database_id'];
-		$name = $mysqlcon->quote($client['client_nickname'], ENT_QUOTES);
+		$client_groups_rankup = array();
+		$name = $mysqlcon->quote((mb_substr($client['client_nickname'],0,30)), ENT_QUOTES);
 		$uid = htmlspecialchars($client['client_unique_identifier'], ENT_QUOTES);
 		$sgroups = array_flip(explode(",", $client['client_servergroups']));
-		if (!isset($yetonline[$uid]) && $client['client_version'] != "ServerQuery") {
+		if (!isset($multipleonline[$uid]) && $client['client_version'] != "ServerQuery" && $client['client_type']!="1") {
 			$clientidle = floor($client['client_idle_time'] / 1000);
 			if(isset($cfg['rankup_ignore_idle_time']) && $clientidle < $cfg['rankup_ignore_idle_time']) {
 				$clientidle = 0;
 			}
-			$yetonline[$uid] = 0;
+			$multipleonline[$uid] = 0;
 			if(isset($cfg['rankup_excepted_unique_client_id_list'][$uid])) {
 				$except = 3;
-			} elseif(array_intersect_key($sgroups, $cfg['rankup_excepted_group_id_list'])) {
+			} elseif($cfg['rankup_excepted_group_id_list'] != NULL && array_intersect_key($sgroups, $cfg['rankup_excepted_group_id_list'])) {
 				$except = 2;
 			} else {
 				if(isset($select_arr['all_user'][$uid]['except']) && ($select_arr['all_user'][$uid]['except'] == 3 || $select_arr['all_user'][$uid]['except'] == 2) && $cfg['rankup_excepted_mode'] == 2) { 
 				 	$select_arr['all_user'][$uid]['count'] = 0;
 				 	$select_arr['all_user'][$uid]['idle'] = 0;
-					enter_logfile($cfg,5,sprintf($lang['resettime'], $name, $uid, $cldbid));
+					enter_logfile($cfg,5,sprintf($lang['resettime'], $name, $uid, $client['client_database_id']));
 					$sqlexec .= "DELETE FROM `$dbname`.`user_snapshot` WHERE `uuid`='$uid'; ";
 				}
 				$except = 0;
 			}
 			if(isset($select_arr['all_user'][$uid])) {
-				$idle   = $select_arr['all_user'][$uid]['idle'] + $clientidle;
-				$grpid  = $select_arr['all_user'][$uid]['grpid'];
-				$nextup = $select_arr['all_user'][$uid]['nextup'];
-				$grpsince = $select_arr['all_user'][$uid]['grpsince'];
-				if ($select_arr['all_user'][$uid]['cldbid'] != $cldbid && $cfg['rankup_client_database_id_change_switch'] == 1) {
-					enter_logfile($cfg,5,sprintf($lang['changedbid'], $name, $uid, $cldbid, $select_arr['all_user'][$uid]['cldbid']));
+				$idle = $select_arr['all_user'][$uid]['idle'] + $clientidle;
+				if ($select_arr['all_user'][$uid]['cldbid'] != $client['client_database_id'] && $cfg['rankup_client_database_id_change_switch'] == 1) {
+					enter_logfile($cfg,5,sprintf($lang['changedbid'], $name, $uid, $client['client_database_id'], $select_arr['all_user'][$uid]['cldbid']));
 						$count = 1;
 						$idle  = 0;
 				} else {
@@ -87,26 +132,25 @@ function calc_user($ts3,$mysqlcon,$lang,$cfg,$dbname,$allclients,$phpcommand,$se
 									if ($nowtime > $select_arr['all_user'][$uid]['boosttime'] + $boost['time']) {
 										usleep($cfg['teamspeak_query_command_delay']);
 										try {
-											$ts3->serverGroupClientDel($boost['group'], $cldbid);
+											$ts3->serverGroupClientDel($boost['group'], $client['client_database_id']);
 											$boosttime = 0;
-											enter_logfile($cfg,5,sprintf($lang['sgrprm'], $select_arr['groups'][$boost['group']]['sgidname'], $boost['group'], $name, $uid, $cldbid));
-										}
-										catch (Exception $e) {
-											enter_logfile($cfg,2,"TS3 error: ".$e->getCode().': '.$e->getMessage()." ; ".sprintf($lang['sgrprerr'], $name, $uid, $cldbid, $select_arr['groups'][$select_arr['all_user'][$uid]['grpid']]['sgidname'], $select_arr['all_user'][$uid]['grpid']));
+											enter_logfile($cfg,5,sprintf($lang['sgrprm'], $select_arr['groups'][$boost['group']]['sgidname'], $boost['group'], $name, $uid, $client['client_database_id']));
+										} catch (Exception $e) {
+											enter_logfile($cfg,2,"TS3 error: ".$e->getCode().': '.$e->getMessage()." ; ".sprintf($lang['sgrprerr'], $name, $uid, $client['client_database_id'], $select_arr['groups'][$select_arr['all_user'][$uid]['grpid']]['sgidname'], $select_arr['all_user'][$uid]['grpid']));
 										}
 									}
 								}
-								$count = ($nowtime - $select_arr['job_check']['calc_user_lastscan']['timestamp']) * $boost['factor'] + $select_arr['all_user'][$uid]['count'];
-								if ($clientidle > ($nowtime - $select_arr['job_check']['calc_user_lastscan']['timestamp'])) {
-									$idle = ($nowtime - $select_arr['job_check']['calc_user_lastscan']['timestamp']) * $boost['factor'] + $select_arr['all_user'][$uid]['idle'];
+								$count = $addtime * $boost['factor'] + $select_arr['all_user'][$uid]['count'];
+								if ($clientidle > $addtime) {
+									$idle = $addtime * $boost['factor'] + $select_arr['all_user'][$uid]['idle'];
 								}
 							}
 						}
 					}
 					if($cfg['rankup_boost_definition'] == 0 or $hitboost == 0) {
-						$count = $nowtime - $select_arr['job_check']['calc_user_lastscan']['timestamp'] + $select_arr['all_user'][$uid]['count'];
-						if ($clientidle > ($nowtime - $select_arr['job_check']['calc_user_lastscan']['timestamp'])) {
-							$idle = $nowtime - $select_arr['job_check']['calc_user_lastscan']['timestamp'] + $select_arr['all_user'][$uid]['idle'];
+						$count = $addtime + $select_arr['all_user'][$uid]['count'];
+						if ($clientidle > $addtime) {
+							$idle = $addtime + $select_arr['all_user'][$uid]['idle'];
 						}
 					}
 				}
@@ -116,13 +160,14 @@ function calc_user($ts3,$mysqlcon,$lang,$cfg,$dbname,$allclients,$phpcommand,$se
 				} else {
 					$activetime = $count;
 				}
-				$dtT = new DateTime("@$activetime");
-				foreach ($cfg['rankup_definition'] as $time => $groupid) {
-					if (isset($sgroups[$groupid])) {
-						$grpid = $groupid;
-						break;
+				$dtT = new DateTime("@".round($activetime));
+
+				foreach($sgroups as $clientgroup => $dummy) {
+					if(isset($cfg['rankup_definition_flipped'][$clientgroup])) {
+						$client_groups_rankup[$clientgroup] = 0;
 					}
 				}
+
 				$grpcount=0;
 				foreach ($cfg['rankup_definition'] as $time => $groupid) {
 					$grpcount++;
@@ -132,59 +177,64 @@ function calc_user($ts3,$mysqlcon,$lang,$cfg,$dbname,$allclients,$phpcommand,$se
 						if($except != 2 && $except != 3) {
 							$except = 1;
 						}
-					} elseif ($activetime > $time && !isset($cfg['rankup_excepted_unique_client_id_list'][$uid]) && !array_intersect_key($sgroups, $cfg['rankup_excepted_group_id_list'])) {
-						if ($select_arr['all_user'][$uid]['grpid'] != $groupid) {
-							if ($select_arr['all_user'][$uid]['grpid'] != NULL && isset($sgroups[$select_arr['all_user'][$uid]['grpid']])) {
+					} elseif ($activetime > $time && !isset($cfg['rankup_excepted_unique_client_id_list'][$uid]) && ($cfg['rankup_excepted_group_id_list'] == NULL || !array_intersect_key($sgroups, $cfg['rankup_excepted_group_id_list']))) {
+						if (!isset($sgroups[$groupid])) {
+							if ($select_arr['all_user'][$uid]['grpid'] != NULL && $select_arr['all_user'][$uid]['grpid'] != 0 && isset($sgroups[$select_arr['all_user'][$uid]['grpid']])) {
 								usleep($cfg['teamspeak_query_command_delay']);
 								try {
-									$ts3->serverGroupClientDel($select_arr['all_user'][$uid]['grpid'], $cldbid);
-									enter_logfile($cfg,5,sprintf($lang['sgrprm'], $select_arr['groups'][$select_arr['all_user'][$uid]['grpid']]['sgidname'], $select_arr['all_user'][$uid]['grpid'], $name, $uid, $cldbid));
-								}
-								catch (Exception $e) {
-									enter_logfile($cfg,2,"TS3 error: ".$e->getCode().': '.$e->getMessage()." ; ".sprintf($lang['sgrprerr'], $name, $uid, $cldbid, $select_arr['groups'][$groupid]['sgidname'], $groupid));
-								}
-							}
-							if (!isset($sgroups[$groupid])) {
-								usleep($cfg['teamspeak_query_command_delay']);
-								try {
-									$ts3->serverGroupClientAdd($groupid, $cldbid);
-									$grpsince = $nowtime;
-									enter_logfile($cfg,5,sprintf($lang['sgrpadd'], $select_arr['groups'][$groupid]['sgidname'], $groupid, $name, $uid, $cldbid));								
-								}
-								catch (Exception $e) {
-									enter_logfile($cfg,2,"TS3 error: ".$e->getCode().': '.$e->getMessage()." ; ".sprintf($lang['sgrprerr'], $name, $uid, $cldbid, $select_arr['groups'][$groupid]['sgidname'], $groupid));
-								}
-							}
-							$grpid = $groupid;
-							if ($cfg['rankup_message_to_user_switch'] == 1) {
-								usleep($cfg['teamspeak_query_command_delay']);
-								$days  = $dtF->diff($dtT)->format('%a');
-								$hours = $dtF->diff($dtT)->format('%h');
-								$mins  = $dtF->diff($dtT)->format('%i');
-								$secs  = $dtF->diff($dtT)->format('%s');
-								try {
-									$ts3->clientGetByUid($uid)->message(sprintf($cfg['rankup_message_to_user'], $days, $hours, $mins, $secs, $select_arr['groups'][$groupid]['sgidname'], $client['client_nickname']));
+									$ts3->serverGroupClientDel($select_arr['all_user'][$uid]['grpid'], $client['client_database_id']);
+									enter_logfile($cfg,5,sprintf($lang['sgrprm'], $select_arr['groups'][$select_arr['all_user'][$uid]['grpid']]['sgidname'], $select_arr['all_user'][$uid]['grpid'], $name, $uid, $client['client_database_id']));
+									if(isset($client_groups_rankup[$select_arr['all_user'][$uid]['grpid']])) unset($client_groups_rankup[$select_arr['all_user'][$uid]['grpid']]);
 								} catch (Exception $e) {
-									enter_logfile($cfg,2,"TS3 error: ".$e->getCode().': '.$e->getMessage()." ; ".sprintf($lang['sgrprerr'], $name, $uid, $cldbid, $select_arr['groups'][$groupid]['sgidname'], $groupid));
+									enter_logfile($cfg,2,"TS3 error: ".$e->getCode().': '.$e->getMessage()." ; ".sprintf($lang['sgrprerr'], $name, $uid, $client['client_database_id'], $select_arr['groups'][$select_arr['all_user'][$uid]['grpid']]['sgidname'], $select_arr['all_user'][$uid]['grpid']));
 								}
 							}
+							usleep($cfg['teamspeak_query_command_delay']);
+							try {
+								$ts3->serverGroupClientAdd($groupid, $client['client_database_id']);
+								$select_arr['all_user'][$uid]['grpsince'] = $nowtime;
+								enter_logfile($cfg,5,sprintf($lang['sgrpadd'], $select_arr['groups'][$groupid]['sgidname'], $groupid, $name, $uid, $client['client_database_id']));
+								if ($cfg['rankup_message_to_user_switch'] == 1) {
+									$days  = $dtF->diff($dtT)->format('%a');
+									$hours = $dtF->diff($dtT)->format('%h');
+									$mins  = $dtF->diff($dtT)->format('%i');
+									$secs  = $dtF->diff($dtT)->format('%s');
+									sendmessage($ts3, $cfg, $uid, sprintf($cfg['rankup_message_to_user'],$days,$hours,$mins,$secs,$select_arr['groups'][$groupid]['sgidname'],$client['client_nickname']), sprintf($lang['sgrprerr'], $name, $uid, $client['client_database_id'], $select_arr['groups'][$groupid]['sgidname'],$groupid), 2);
+								}
+							} catch (Exception $e) {
+								enter_logfile($cfg,2,"TS3 error: ".$e->getCode().': '.$e->getMessage()." ; ".sprintf($lang['sgrprerr'], $name, $uid, $client['client_database_id'], $select_arr['groups'][$groupid]['sgidname'], $groupid));
+							}
+							$select_arr['all_user'][$uid]['grpid'] = $groupid;
 						}
 						if($grpcount == 1) {
-							$nextup = 0;
+							$select_arr['all_user'][$uid]['nextup'] = 0;
 						}
 						break;
 					} else {
-						$nextup = $time - $activetime;
+						$select_arr['all_user'][$uid]['nextup'] = $time - $activetime;
 					}
 				}
+
+				foreach($client_groups_rankup as $removegroup => $dummy) {
+					if($removegroup != NULL && $removegroup != 0 && $removegroup != $select_arr['all_user'][$uid]['grpid']){
+						try {
+							usleep($cfg['teamspeak_query_command_delay']);
+							$ts3->serverGroupClientDel($removegroup, $client['client_database_id']);
+							enter_logfile($cfg,5,sprintf("Removed WRONG servergroup %s (ID: %s) from user %s (unique Client-ID: %s; Client-database-ID %s).", $select_arr['groups'][$removegroup]['sgidname'], $removegroup, $name, $uid, $client['client_database_id']));
+						} catch (Exception $e) {
+							enter_logfile($cfg,2,"TS3 error: ".$e->getCode().': '.$e->getMessage()." ; ".sprintf($lang['sgrprerr'], $name, $uid, $client['client_database_id'], $select_arr['groups'][$removegroup]['sgidname'], $removegroup));
+						}
+					}
+				}
+				unset($client_groups_rankup);
 				$updatedata[] = array(
 					"uuid" => $mysqlcon->quote($client['client_unique_identifier'], ENT_QUOTES),
-					"cldbid" => $cldbid,
+					"cldbid" => $client['client_database_id'],
 					"count" => $count,
 					"name" => $name,
 					"lastseen" => $nowtime,
-					"grpid" => $grpid,
-					"nextup" => $nextup,
+					"grpid" => $select_arr['all_user'][$uid]['grpid'],
+					"nextup" => $select_arr['all_user'][$uid]['nextup'],
 					"idle" => $idle,
 					"cldgroup" => $client['client_servergroups'],
 					"boosttime" => $boosttime,
@@ -192,51 +242,63 @@ function calc_user($ts3,$mysqlcon,$lang,$cfg,$dbname,$allclients,$phpcommand,$se
 					"nation" => $client['client_country'],
 					"version" => $client['client_version'],
 					"except" => $except,
-					"grpsince" => $grpsince,
+					"grpsince" => $select_arr['all_user'][$uid]['grpsince'],
 					"cid" => $client['cid']
 				);
 			} else {
-				$grpid = '0';
+				$select_arr['all_user'][$uid]['grpid'] = '0';
 				foreach ($cfg['rankup_definition'] as $time => $groupid) {
 					if (isset($sgroups[$groupid])) {
-						$grpid = $groupid;
+						$select_arr['all_user'][$uid]['grpid'] = $groupid;
 						break;
 					}
 				}
-				$updatedata[] = array(
+				$insertdata[] = array(
 					"uuid" => $mysqlcon->quote($client['client_unique_identifier'], ENT_QUOTES),
-					"cldbid" => $cldbid,
-					"count" => "0",
+					"cldbid" => $client['client_database_id'],
+					"count" => 0,
 					"name" => $name,
 					"lastseen" => $nowtime,
-					"grpid" => $grpid,
+					"grpid" => $select_arr['all_user'][$uid]['grpid'],
 					"nextup" => (key($cfg['rankup_definition']) - 1),
-					"idle" => "0",
+					"idle" => 0,
 					"cldgroup" => $client['client_servergroups'],
-					"boosttime" => "0",
+					"boosttime" => 0,
 					"platform" => $client['client_platform'],
 					"nation" => $client['client_country'],
 					"version" => $client['client_version'],
-					"firstcon" => $client['client_created'],
+					"firstcon" => $nowtime,
 					"except" => $except,
-					"grpsince" => "0",
+					"grpsince" => 0,
 					"cid" => $client['cid']
 				);
-				enter_logfile($cfg,5,sprintf($lang['adduser'], $name, $uid, $cldbid));
+				enter_logfile($cfg,5,sprintf($lang['adduser'], $name, $uid, $client['client_database_id']));
 			}
 		}
 	}
-	unset($yetonline);
+	unset($multipleonline,$allclients,$client,$select_arr);
 
 	if ($updatedata != NULL) {
 		$sqlinsertvalues = '';
 		foreach ($updatedata as $updatearr) {
-			$sqlinsertvalues .= "(".$updatearr['uuid'].",'".$updatearr['cldbid']."','".$updatearr['count']."',".$updatearr['name'].",'".$updatearr['lastseen']."','".$updatearr['grpid']."','".$updatearr['nextup']."','".$updatearr['idle']."','".$updatearr['cldgroup']."','".$updatearr['boosttime']."','".$updatearr['platform']."','".$updatearr['nation']."','".$updatearr['version']."','".$updatearr['except']."','".$updatearr['grpsince']."','".$updatearr['cid']."',1),";
+			$sqlinsertvalues .= "(".$updatearr['uuid'].",".$updatearr['cldbid'].",".$updatearr['count'].",".$updatearr['name'].",".$updatearr['lastseen'].",".$updatearr['grpid'].",".$updatearr['nextup'].",".$updatearr['idle'].",'".$updatearr['cldgroup']."',".$updatearr['boosttime'].",'".$updatearr['platform']."','".$updatearr['nation']."','".$updatearr['version']."',".$updatearr['except'].",".$updatearr['grpsince'].",".$updatearr['cid'].",1),";
 		}
 		$sqlinsertvalues = substr($sqlinsertvalues, 0, -1);
-		$sqlexec .= "UPDATE `$dbname`.`user` SET `online`='0'; INSERT INTO `$dbname`.`user` (`uuid`,`cldbid`,`count`,`name`,`lastseen`,`grpid`,`nextup`,`idle`,`cldgroup`,`boosttime`,`platform`,`nation`,`version`,`except`,`grpsince`,`cid`,`online`) VALUES $sqlinsertvalues ON DUPLICATE KEY UPDATE `cldbid`=VALUES(`cldbid`),`count`=VALUES(`count`),`name`=VALUES(`name`),`lastseen`=VALUES(`lastseen`),`grpid`=VALUES(`grpid`),`nextup`=VALUES(`nextup`),`idle`=VALUES(`idle`),`cldgroup`=VALUES(`cldgroup`),`boosttime`=VALUES(`boosttime`),`platform`=VALUES(`platform`),`nation`=VALUES(`nation`),`version`=VALUES(`version`),`except`=VALUES(`except`),`grpsince`=VALUES(`grpsince`),`cid`=VALUES(`cid`),`online`=VALUES(`online`); ";
+		$sqlexec .= "INSERT INTO `$dbname`.`user` (`uuid`,`cldbid`,`count`,`name`,`lastseen`,`grpid`,`nextup`,`idle`,`cldgroup`,`boosttime`,`platform`,`nation`,`version`,`except`,`grpsince`,`cid`,`online`) VALUES $sqlinsertvalues ON DUPLICATE KEY UPDATE `cldbid`=VALUES(`cldbid`),`count`=VALUES(`count`),`name`=VALUES(`name`),`lastseen`=VALUES(`lastseen`),`grpid`=VALUES(`grpid`),`nextup`=VALUES(`nextup`),`idle`=VALUES(`idle`),`cldgroup`=VALUES(`cldgroup`),`boosttime`=VALUES(`boosttime`),`platform`=VALUES(`platform`),`nation`=VALUES(`nation`),`version`=VALUES(`version`),`except`=VALUES(`except`),`grpsince`=VALUES(`grpsince`),`cid`=VALUES(`cid`),`online`=VALUES(`online`); ";
 		unset($updatedata, $sqlinsertvalues);
 	}
+	
+	if ($insertdata != NULL) {
+		$sqlinsertvalues = '';
+		foreach ($insertdata as $updatearr) {
+			$sqlinsertvalues .= "(".$updatearr['uuid'].",".$updatearr['cldbid'].",".$updatearr['count'].",".$updatearr['name'].",".$updatearr['lastseen'].",".$updatearr['grpid'].",".$updatearr['nextup'].",".$updatearr['idle'].",'".$updatearr['cldgroup']."',".$updatearr['boosttime'].",'".$updatearr['platform']."','".$updatearr['nation']."','".$updatearr['version']."',".$updatearr['except'].",".$updatearr['grpsince'].",".$updatearr['cid'].",1,".$updatearr['firstcon']."),";
+		}
+		$sqlinsertvalues = substr($sqlinsertvalues, 0, -1);
+		$sqlexec .= "INSERT INTO `$dbname`.`user` (`uuid`,`cldbid`,`count`,`name`,`lastseen`,`grpid`,`nextup`,`idle`,`cldgroup`,`boosttime`,`platform`,`nation`,`version`,`except`,`grpsince`,`cid`,`online`,`firstcon`) VALUES $sqlinsertvalues ON DUPLICATE KEY UPDATE `cldbid`=VALUES(`cldbid`),`count`=VALUES(`count`),`name`=VALUES(`name`),`lastseen`=VALUES(`lastseen`),`grpid`=VALUES(`grpid`),`nextup`=VALUES(`nextup`),`idle`=VALUES(`idle`),`cldgroup`=VALUES(`cldgroup`),`boosttime`=VALUES(`boosttime`),`platform`=VALUES(`platform`),`nation`=VALUES(`nation`),`version`=VALUES(`version`),`except`=VALUES(`except`),`grpsince`=VALUES(`grpsince`),`cid`=VALUES(`cid`),`online`=VALUES(`online`),`firstcon`=VALUES(`firstcon`); ";
+		unset($insertdata, $sqlinsertvalues);
+	}
+
+	enter_logfile($cfg,6,"calc_user needs: ".(number_format(round((microtime(true) - $starttime), 5),5)));
 	return($sqlexec);
 }
 ?>
