@@ -80,12 +80,7 @@ if(isset($_POST['switchexpert']) && isset($_SESSION[$rspathhex.'username']) && $
 	};
 	</script>
 <body>
-	<?PHP
-	if (basename($_SERVER['SCRIPT_NAME']) != "index.php") {
-		echo '<div id="wrapper">';
-	} else { 
-		echo '<div>';
-	} ?>
+	<div id="wrapper">
 		<nav class="navbar navbar-inverse navbar-fixed-top">
 			<div class="navbar-header">
 				<a class="navbar-brand" href="index.php">TSN Ranksystem - Webinterface <?PHP echo $cfg['version_current_using'];?></a>
@@ -161,8 +156,6 @@ if(isset($_POST['switchexpert']) && isset($_SESSION[$rspathhex.'username']) && $
 					</ul>
 				</li>
 			</ul>
-			<?PHP
-			if (basename($_SERVER['SCRIPT_NAME']) != "index.php") { ?>
 			<div class="collapse navbar-collapse">
 				<ul class="nav navbar-nav side-nav">
 					<?PHP echo '<li'.(basename($_SERVER['SCRIPT_NAME']) == "ts.php" ? ' class="active">' : '>'); ?>
@@ -206,7 +199,10 @@ if(isset($_POST['switchexpert']) && isset($_SESSION[$rspathhex.'username']) && $
 						<li class="divider"></li>
 						<li>
 							<a href="javascript:;" data-toggle="collapse" data-target="#addons"><i class="fas fa-puzzle-piece"></i>&nbsp;&nbsp;<?PHP echo $lang['winav12']; ?>&nbsp;<i class="fas fa-caret-down"></i></a>
-							<?PHP echo '<ul id="addons" class="'.(basename($_SERVER['SCRIPT_NAME']) == "addon_assign_groups.php" ? 'in collapse">' : 'collapse">'); ?>
+							<?PHP echo '<ul id="addons" class="'.(basename($_SERVER['SCRIPT_NAME']) == "addon_assign_groups.php" || basename($_SERVER['SCRIPT_NAME']) == "api.php" ? 'in collapse">' : 'collapse">'); ?>
+								<?PHP echo '<li'.(basename($_SERVER['SCRIPT_NAME']) == "api.php" ? ' class="active">' : '>'); ?>
+									<a href="api.php"><i class="fas fa-microchip"></i>&nbsp;&nbsp;<?PHP echo $lang['api']; ?></a>
+								</li>
 								<?PHP echo '<li'.(basename($_SERVER['SCRIPT_NAME']) == "addon_assign_groups.php" ? ' class="active">' : '>'); ?>
 									<a href="addon_assign_groups.php" class="active"><i class="fas fa-user-plus"></i>&nbsp;&nbsp;<?PHP echo $lang['stag0001']; ?></a>
 								</li>
@@ -245,7 +241,6 @@ if(isset($_POST['switchexpert']) && isset($_SESSION[$rspathhex.'username']) && $
 					?>
 				</ul>
 			</div>
-			<?PHP } ?>
 		</nav>
 <?PHP
 if($cfg['webinterface_admin_client_unique_id_list'] == NULL && isset($_SESSION[$rspathhex.'username']) && $_SESSION[$rspathhex.'username'] == $cfg['webinterface_user'] && !isset($err_msg) && $cfg['webinterface_fresh_installation'] != 1) {
@@ -255,15 +250,5 @@ if($cfg['webinterface_admin_client_unique_id_list'] == NULL && isset($_SESSION[$
 if(!isset($_SERVER['HTTPS']) && !isset($err_msg) || isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != "on" && !isset($err_msg)) {
 	$host = "<a href=\"https://".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\')."\">";
 	$err_msg = sprintf($lang['winav10'], $host,'</a>!<br>', '<br>'); $err_lvl = 2;
-}
-
-function error_handling($msg,$type = NULL) {
-	switch ($type) {
-		case NULL: echo '<div class="alert alert-success alert-dismissible">'; break;
-		case 1: echo '<div class="alert alert-info alert-dismissible">'; break;
-		case 2: echo '<div class="alert alert-warning alert-dismissible">'; break;
-		case 3: echo '<div class="alert alert-danger alert-dismissible">'; break;
-	}
-	echo '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>',$msg,'</div>';
 }
 ?>
