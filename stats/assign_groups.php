@@ -1,30 +1,9 @@
 <?PHP
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_strict_mode', 1);
-if(in_array('sha512', hash_algos())) {
-	ini_set('session.hash_function', 'sha512');
-}
-if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == "on") {
-	ini_set('session.cookie_secure', 1);
-	if(!headers_sent()) {
-		header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload;");
-	}
-}
-session_start();
-
-require_once('../other/config.php');
-require_once('../other/session.php');
-require_once('../other/load_addons_config.php');
-
-$addons_config = load_addons_config($mysqlcon,$lang,$cfg,$dbname);
+require_once('_preload.php');
 
 if($addons_config['assign_groups_active']['value'] != '1') {
 	echo "addon is disabled";
 	exit;
-}
-
-if(!isset($_SESSION[$rspathhex.'tsuid'])) {
-	set_session_ts3($mysqlcon,$cfg,$lang,$dbname);
 }
 
 if(isset($_SESSION[$rspathhex.'tsuid'])) {
@@ -63,6 +42,7 @@ if(count($_SESSION[$rspathhex.'multiple']) > 1 and !isset($_SESSION[$rspathhex.'
 	}
 
 	$allowed_groups_arr = explode(',', $addons_config['assign_groups_groupids']['value']);
+	$excepted_groups_arr = explode(',', $addons_config['assign_groups_excepted_groupids']['value']);
 
 	if(isset($_POST['update']) && isset($db_csrf[$_POST['csrf_token']])) {
 		if(($sumentries = $mysqlcon->query("SELECT COUNT(*) FROM `$dbname`.`addon_assign_groups` WHERE `uuid`='$uuid'")->fetch(PDO::FETCH_NUM)) === false) {
@@ -72,7 +52,16 @@ if(count($_SESSION[$rspathhex.'multiple']) > 1 and !isset($_SESSION[$rspathhex.'
 				$err_msg = $lang['stag0007']; $err_lvl = 3;
 			} else {
 				$set_groups = '';
-				$count_limit = 0;
+				$count_limit = $excepted = 0;
+				if(isset($excepted_groups_arr) && $excepted_groups_arr != '') {
+					foreach($excepted_groups_arr as $excepted_group) {
+						if(in_array($excepted_group, $cld_groups)) {
+							$excepted++;
+							$err_msg = sprintf($lang['stag0019'], $sqlhisgroup[$excepted_group]['sgidname'], $excepted_group);
+							break;
+						}
+					}
+				}
 				foreach($allowed_groups_arr as $allowed_group) {
 					if(in_array($allowed_group, $cld_groups)) {
 						$count_limit++;
@@ -90,7 +79,7 @@ if(count($_SESSION[$rspathhex.'multiple']) > 1 and !isset($_SESSION[$rspathhex.'
 					}
 				}
 				$set_groups = substr($set_groups, 0, -1);
-				if($set_groups != '' && $count_limit <= $addons_config['assign_groups_limit']['value']) {
+				if($set_groups != '' && $count_limit <= $addons_config['assign_groups_limit']['value'] && $excepted == 0) {
 					if ($mysqlcon->exec("INSERT INTO `$dbname`.`addon_assign_groups` SET `uuid`='$uuid',`grpids`='$set_groups'") === false) {
 						$err_msg = $lang['isntwidbmsg'].print_r($mysqlcon->errorInfo(), true); $err_lvl = 3;
 					} elseif($mysqlcon->exec("UPDATE `$dbname`.`job_check` SET `timestamp`=1 WHERE `job_name`='reload_trigger'; ") === false) {
@@ -100,6 +89,8 @@ if(count($_SESSION[$rspathhex.'multiple']) > 1 and !isset($_SESSION[$rspathhex.'
 					}
 				} elseif($count_limit > $addons_config['assign_groups_limit']['value']) {
 					$err_msg = sprintf($lang['stag0009'], $addons_config['assign_groups_limit']['value']); $err_lvl = 3;
+				} elseif($excepted > 0) {
+					$err_lvl = 3;
 				} else {
 					$err_msg = $lang['stag0010']; $err_lvl = 3;
 				}
@@ -111,7 +102,6 @@ if(count($_SESSION[$rspathhex.'multiple']) > 1 and !isset($_SESSION[$rspathhex.'
 		exit;
 	}
 }
-require_once('nav.php');
 ?>
 		<div id="page-wrapper">
 		<?PHP if(isset($err_msg)) error_handling($err_msg, $err_lvl); ?>
@@ -173,5 +163,6 @@ require_once('nav.php');
 			</div>
 		</div>
 	</div>
+	<?PHP require_once('_footer.php'); ?>
 </body>
 </html>

@@ -18,24 +18,24 @@ function reset_rs($ts3,$mysqlcon,$lang,$cfg,$dbname,&$db_cache) {
 		
 			krsort($cfg['rankup_definition']);
 
-			if (($all_clients = $mysqlcon->query("SELECT cldbid,uuid,name FROM `$dbname`.`user`")->fetchAll(PDO::FETCH_ASSOC|PDO::FETCH_UNIQUE)) === false) {
+			if (($all_clients = $mysqlcon->query("SELECT `cldbid`,`uuid`,`name` FROM `$dbname`.`user`")->fetchAll(PDO::FETCH_ASSOC|PDO::FETCH_UNIQUE)) === false) {
 				shutdown($mysqlcon,$cfg,1,"Select on DB failed: ".print_r($mysqlcon->errorInfo(), true));
 			}
 		
-			foreach ($cfg['rankup_definition'] as $time => $groupid) {
-				enter_logfile($cfg,5,"    Getting TS3 servergrouplist for ".$db_cache['groups'][$groupid]['sgidname']." (ID: ".$groupid.")");
+			foreach ($cfg['rankup_definition'] as $rank) {
+				enter_logfile($cfg,5,"    Getting TS3 servergrouplist for ".$db_cache['groups'][$rank['group']]['sgidname']." (ID: ".$rank['group'].")");
 				try {
 					usleep($cfg['teamspeak_query_command_delay']);
-					$tsclientlist = $ts3->servergroupclientlist($groupid);
+					$tsclientlist = $ts3->servergroupclientlist($rank['group']);
 					
 					foreach ($tsclientlist as $tsclient) {
 						if (isset($all_clients[$tsclient['cldbid']])) {
 							try {
 								usleep($cfg['teamspeak_query_command_delay']);
-								$ts3->serverGroupClientDel($groupid, $tsclient['cldbid']);
-								enter_logfile($cfg,5,"      ".sprintf($lang['sgrprm'], $db_cache['groups'][$groupid]['sgidname'], $groupid, $all_clients[$tsclient['cldbid']]['name'], $all_clients[$tsclient['cldbid']]['uuid'], $tsclient['cldbid']));
+								$ts3->serverGroupClientDel($rank['group'], $tsclient['cldbid']);
+								enter_logfile($cfg,5,"      ".sprintf($lang['sgrprm'], $db_cache['groups'][$rank['group']]['sgidname'], $rank['group'], $all_clients[$tsclient['cldbid']]['name'], $all_clients[$tsclient['cldbid']]['uuid'], $tsclient['cldbid']));
 							} catch (Exception $e) {
-								enter_logfile($cfg,2,"      TS3 error: ".$e->getCode().': '.$e->getMessage()." ; ".sprintf($lang['sgrprerr'], $all_clients[$tsclient['cldbid']]['name'], $all_clients[$tsclient['cldbid']]['uuid'], $tsclient['cldbid'], $db_cache['groups'][$groupid]['sgidname'], $groupid));
+								enter_logfile($cfg,2,"      TS3 error: ".$e->getCode().': '.$e->getMessage()." ; ".sprintf($lang['sgrprerr'], $all_clients[$tsclient['cldbid']]['name'], $all_clients[$tsclient['cldbid']]['uuid'], $tsclient['cldbid'], $db_cache['groups'][$rank['group']]['sgidname'], $rank['group']));
 								$err_cnt++;
 							}
 						}
@@ -80,7 +80,7 @@ function reset_rs($ts3,$mysqlcon,$lang,$cfg,$dbname,&$db_cache) {
 			} else {
 				enter_logfile($cfg,4,"    Reset Server statistics summary (table: stats_server)");
 			}
-			if($mysqlcon->exec("UPDATE `$dbname`.`stats_user` SET `rank`='0', `count_week`='0', `count_month`='0', `idle_week`='0', `idle_month`='0', `achiev_count`='0', `achiev_time`='0', `achiev_connects`='0', `achiev_time_perc`='0', `achiev_connects_perc`='0', `total_connections`='0', `active_week`='0', `active_month`='0';") === false) {
+			if($mysqlcon->exec("UPDATE `$dbname`.`stats_user` SET `count_week`='0', `count_month`='0', `idle_week`='0', `idle_month`='0', `total_connections`='0', `active_week`='0', `active_month`='0';") === false) {
 				enter_logfile($cfg,2,"  Executing SQL commands failed: ".print_r($mysqlcon->errorInfo(), true));
 				$err++;
 			} else {
@@ -201,23 +201,27 @@ function reset_rs($ts3,$mysqlcon,$lang,$cfg,$dbname,&$db_cache) {
 			} else {
 				$db_cache['job_check']['reset_webspace_cache']['timestamp'] = 2;
 				enter_logfile($cfg,4,"  Started job '".$lang['wihladm33']."'");
+				if ($mysqlcon->exec("DELETE FROM `$dbname`.`groups`;") === false) {
+					enter_logfile($cfg,4,"  Executing SQL commands failed: ".print_r($mysqlcon->errorInfo(), true));
+				} else {
+					if($mysqlcon->exec("UPDATE `$dbname`.`job_check` SET `timestamp`=1 WHERE `job_name`='reload_trigger';") === false) {
+						enter_logfile($cfg,4,"  Executing SQL commands failed: ".print_r($mysqlcon->errorInfo(), true));
+					}
+				}
 			}
-			
+
 			$del_folder = array('avatars/','tsicons/');
 			$err_cnt = 0;
-			
+
 			if (!function_exists('rm_file_reset')) {
 				function rm_file_reset($folder,$cfg) {
 					foreach(scandir($folder) as $file) {
-						if ('.' === $file || '..' === $file || 'rs.png' === $file || is_dir($folder.$file)) {
-							continue;
+						if (in_array($file, array('.','..','check.png','placeholder.png','rs.png','servericon.png','100.png','200.png','300.png','500.png','600.png')) || is_dir($folder.$file)) continue;
+						if(unlink($folder.$file)) {
+							enter_logfile($cfg,4,"    File ".$folder.$file." successfully deleted.");
 						} else {
-							if(unlink($folder.$file)) {
-								enter_logfile($cfg,4,"    File ".$folder.$file." successfully deleted.");
-							} else {
-								enter_logfile($cfg,2,"    File ".$folder.$file." couldn't be deleted. Please check the file permissions.");
-								$err_cnt++;
-							}
+							enter_logfile($cfg,2,"    File ".$folder.$file." couldn't be deleted. Please check the file permissions.");
+							$err_cnt++;
 						}
 					}
 				}

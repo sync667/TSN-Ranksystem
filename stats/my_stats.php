@@ -1,26 +1,5 @@
 <?PHP
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_strict_mode', 1);
-if(in_array('sha512', hash_algos())) {
-	ini_set('session.hash_function', 'sha512');
-}
-if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == "on") {
-	ini_set('session.cookie_secure', 1);
-	if(!headers_sent()) {
-		header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload;");
-	}
-}
-session_start();
-
-require_once('../other/config.php');
-require_once('../other/session.php');
-require_once('../other/load_addons_config.php');
-
-$addons_config = load_addons_config($mysqlcon,$lang,$cfg,$dbname);
-
-if(!isset($_SESSION[$rspathhex.'tsuid'])) {
-	set_session_ts3($mysqlcon,$cfg,$lang,$dbname);
-}
+require_once('_preload.php');
 
 if(count($_SESSION[$rspathhex.'multiple']) > 1 && !isset($_SESSION[$rspathhex.'uuid_verified'])) {
 	$err_msg = sprintf($lang['stag0006'], '<a href="verify.php">', '</a>'); $err_lvl = 3;
@@ -43,12 +22,12 @@ if(count($_SESSION[$rspathhex.'multiple']) > 1 && !isset($_SESSION[$rspathhex.'u
 	krsort($cfg['rankup_definition']);
 	$nextgrp = '';
 
-	foreach ($cfg['rankup_definition'] as $time => $groupid) {
-		$actualgrp = $time;
-		if ($activetime > $time) {
+	foreach ($cfg['rankup_definition'] as $rank) {
+		$actualgrp = $rank['time'];
+		if ($activetime > $rank['time']) {
 			break;
 		} else {
-			$nextgrp = $time;
+			$nextgrp = $rank['time'];
 		}
 	}
 	if($actualgrp==$nextgrp) {
@@ -62,7 +41,7 @@ if(count($_SESSION[$rspathhex.'multiple']) > 1 && !isset($_SESSION[$rspathhex.'u
 		$percentage_rankup = round($takedtime/$neededtime*100, 2);
 	}
 
-	$stats_user = $mysqlcon->query("SELECT `count_week`,`active_week`,`count_month`,`active_month` FROM `$dbname`.`stats_user` WHERE `uuid`='".$_SESSION[$rspathhex.'tsuid']."'")->fetch();
+	$stats_user = $mysqlcon->query("SELECT `count_week`,`active_week`,`count_month`,`active_month`,`last_calculated` FROM `$dbname`.`stats_user` WHERE `uuid`='".$_SESSION[$rspathhex.'tsuid']."'")->fetch();
 
 	if (isset($stats_user['count_week'])) $count_week = $stats_user['count_week']; else $count_week = 0;
 	$dtF = new DateTime("@0"); $dtT = new DateTime("@$count_week"); $count_week = $dtF->diff($dtT)->format($cfg['default_date_format']);
@@ -101,7 +80,6 @@ if(count($_SESSION[$rspathhex.'multiple']) > 1 && !isset($_SESSION[$rspathhex.'u
 function get_percentage($max_value, $value) {
 	return (round(($value/$max_value)*100));
 }
-require_once('nav.php');
 ?>
 		<div id="page-wrapper">
 		<?PHP if(isset($err_msg)) error_handling($err_msg, $err_lvl); 
@@ -147,10 +125,6 @@ require_once('nav.php');
 									<p><strong><?PHP echo $lang['stmy0006']; ?></strong></p>
 									<p><strong><?PHP echo $lang['stmy0007']; ?></strong></p>
 									<p><strong><?PHP echo $lang['stmy0031']; ?></strong></p>
-									<p><strong><?PHP echo sprintf($lang['stmy0008'], '7'); ?></strong></p>
-									<p><strong><?PHP echo sprintf($lang['stmy0009'], '7'); ?></strong></p>
-									<p><strong><?PHP echo sprintf($lang['stmy0008'], '30'); ?></strong></p>
-									<p><strong><?PHP echo sprintf($lang['stmy0009'], '30'); ?></strong></p>
 									<p><strong><?PHP echo $lang['stmy0010']; ?></strong></p>
 								</div>
 								<div class="pull-right">
@@ -158,13 +132,26 @@ require_once('nav.php');
 									<p class="text-right"><?PHP echo $dbdata_fetched['uuid']; ?></p>
 									<p class="text-right"><?PHP echo $_SESSION[$rspathhex.'tsconnections']; ?></p>
 									<p class="text-right"><?PHP echo $_SESSION[$rspathhex.'tscreated']; ?></p>
-									<p class="text-right"><?PHP echo $count_total; ?></p>
-									<p class="text-right"><?PHP echo $active_count; ?></p>
+									<p class="text-right" title=<?PHP echo '"',$dbdata_fetched['count'],' sec.">',$count_total; ?></p>
+									<p class="text-right" title=<?PHP echo '"',($dbdata_fetched['count'] - $dbdata_fetched['idle']),' sec.">',$active_count; ?></p>
+									<p class="text-right"><?PHP echo $achievements_done .' / 8'; ?></p>
+								</div>
+								<div class="clearfix"></div>
+							</div>
+							<div class="panel-footer">
+								<div class="pull-left">
+									<p><strong><?PHP echo $lang['stmy0032']; ?></strong></p>
+									<p><strong><?PHP echo sprintf($lang['stmy0008'], '7'); ?></strong></p>
+									<p><strong><?PHP echo sprintf($lang['stmy0009'], '7'); ?></strong></p>
+									<p><strong><?PHP echo sprintf($lang['stmy0008'], '30'); ?></strong></p>
+									<p><strong><?PHP echo sprintf($lang['stmy0009'], '30'); ?></strong></p>
+								</div>
+								<div class="pull-right">
+									<p class="text-right"><?PHP echo date('Y-m-d H:i:s',$stats_user['last_calculated']); ?></p>
 									<p class="text-right"><?PHP echo $count_week; ?></p>
 									<p class="text-right"><?PHP echo $active_week; ?></p>
 									<p class="text-right"><?PHP echo $count_month; ?></p>
 									<p class="text-right"><?PHP echo $active_month; ?></p>
-									<p class="text-right"><?PHP echo $achievements_done .' / 8'; ?></p>
 								</div>
 								<div class="clearfix"></div>
 							</div>
@@ -367,5 +354,6 @@ require_once('nav.php');
 			</div>
 		</div>
 	</div>
+	<?PHP require_once('_footer.php'); ?>
 </body>
 </html>
