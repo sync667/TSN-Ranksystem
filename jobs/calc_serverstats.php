@@ -381,7 +381,7 @@ function calc_serverstats($ts3,$mysqlcon,&$cfg,$dbname,$dbtype,$serverinfo,&$db_
 			$ch = curl_init();
 			curl_setopt($ch, CURLOPT_URL, 'https://ts-n.net/ranksystem/'.$cfg['version_update_channel']);
 			curl_setopt($ch, CURLOPT_REFERER, 'TSN Ranksystem');
-			curl_setopt($ch, CURLOPT_USERAGENT, 
+			curl_setopt($ch, CURLOPT_USERAGENT,
 				$cfg['version_current_using'].";".
 				php_uname("s").";".
 				php_uname("r").";".
@@ -428,7 +428,8 @@ function calc_serverstats($ts3,$mysqlcon,&$cfg,$dbname,$dbtype,$serverinfo,&$db_
 			}
 			$sqlexec .= "UPDATE `$dbname`.`job_check` SET `timestamp`=$nowtime WHERE `job_name`='get_version';\nUPDATE `$dbname`.`cfg_params` SET `value`='{$cfg['version_latest_available']}' WHERE `param`='version_latest_available';\n";
 		}
-		
+
+
 		//Calc Rank
 		if ($cfg['rankup_time_assess_mode'] == 1) {
 			$sqlexec .= "SET @a:=0;\nUPDATE `$dbname`.`user` AS `u` INNER JOIN (SELECT @a:=@a+1 `nr`,`uuid` FROM `$dbname`.`user` WHERE `except`<2 ORDER BY (`count` - `idle`) DESC) AS `s` USING (`uuid`) SET `u`.`rank`=`s`.`nr`;\n";
